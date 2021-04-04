@@ -1,23 +1,31 @@
 import argparse
 import subprocess
 import os
-import pandas as pd
+
 
 def get_files(dir_path, ext='.png'):
     relative_paths = os.listdir(dir_path)
     relative_paths = list(filter(lambda fp: ext in fp, relative_paths))
     return list(map(lambda rel_p: os.path.join(dir_path, rel_p), relative_paths))
 
+
 def ipfs_add_local(file_path):
     'Returns CID'
     proc = subprocess.run(['ipfs', 'add', file_path], capture_output=True, text=True)
     stdout = proc.stdout
-    return stdout.split()[1]
+    try:
+        return stdout.split()[1]
+    except IndexError as e:
+        print(e)
+        print(stdout)
+        return ""
+
 
 def pin_with_pinata(cid, name):
     proc = subprocess.run(['ipfs', 'pin', 'remote', 'add', '--service=pinata', f'--name={name}', str(cid)], capture_output=True, text=True)
     print(f'Uploaded cid: {cid}')
     # print(proc.stdout)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch IPFS file uploading')
@@ -31,6 +39,9 @@ if __name__ == '__main__':
     for fp in files_to_upload:
         print(fp)
         cid = ipfs_add_local(fp)
+        if cid == "":
+            print(f'{fp} failed to upload!')
+            continue
         name = os.path.basename(fp)
         info[name] = {'cid': cid}
 
