@@ -3,6 +3,7 @@ import os
 
 
 def generate_keys(nft_dir, name):
+    """Generate signing and verification keys and returns their location"""
     assert name in ['policy', 'payment']
     vkey_path = os.path.join(nft_dir, f'{name}.vkey')
     skey_path = os.path.join(nft_dir, f'{name}.skey')
@@ -17,6 +18,7 @@ def generate_keys(nft_dir, name):
 
 
 def build_address(nft_dir):
+    """Create address given verification key"""
     vkey_path = os.path.join(nft_dir, 'payment.vkey')
     addr_path = os.path.join(nft_dir, 'payment.addr')
     proc = subprocess.run(['cardano-cli',
@@ -34,6 +36,7 @@ def build_address(nft_dir):
 
 
 def query_utxo(addr):
+    """Query utxo of a given address"""
     proc = subprocess.run(['cardano-cli',
                            'query',
                            'utxo',
@@ -45,6 +48,7 @@ def query_utxo(addr):
 
 
 def query_protocol_parameters(nft_dir):
+    """Query protocol parameters"""
     protocol_json_path = os.path.join(nft_dir, 'protocol.json')
     proc = subprocess.run(['cardano-cli',
                            'query',
@@ -56,6 +60,7 @@ def query_protocol_parameters(nft_dir):
 
 
 def get_key_hash(policy_vkey):
+    """Generate and return key hash given policy verification key"""
     proc = subprocess.run(['cardano-cli',
                            'address',
                            'key-hash',
@@ -65,10 +70,12 @@ def get_key_hash(policy_vkey):
 
 
 def make_policy_script(nft_dir, policy_vkey):
+    """Format string representation of policy script"""
     return f'{"keyHash": f{policy_vkey}, "type": "sig"}'
 
 
 def write_policy_script(nft_dir, script):
+    """Write policy script to file and return location"""
     script_path = os.path.join(nft_dir, 'policy.script')
     with open(script_path, 'w') as script_file:
         script_file.write(script)
@@ -77,6 +84,7 @@ def write_policy_script(nft_dir, script):
 
 
 def get_policy_id(policy_script_path):
+    """Return policy id given policy script"""
     proc = subprocess.run(['cardano-cli',
                            'transaction',
                            'policyid',
@@ -86,6 +94,7 @@ def get_policy_id(policy_script_path):
 
 
 def build_raw_tranaction(nft_dir, tx_hash, payment_addr, policy_id, tokens, fee=0):
+    """Builds transactions"""
     assert type(tokens) == list
 
     def token_mint_formatted():
@@ -110,6 +119,7 @@ def build_raw_tranaction(nft_dir, tx_hash, payment_addr, policy_id, tokens, fee=
 
 
 def calculate_tx_fees(raw_matx_path, protocol_json_path):
+    """Calculate transaction fees"""
     proc = subprocess.run(['cardano-cli',
                            'transaction',
                            'calculate-min-fee',
@@ -128,6 +138,7 @@ def calculate_tx_fees(raw_matx_path, protocol_json_path):
 
 
 def sign_tx(nft_dir, payment_skey_path, policy_skey_path, policy_script_path, raw_matx_path):
+    """Generate and write signed transaction file"""
     signed_matx_path = os.path.join(nft_dir, 'matx.signed')
     proc = subprocess.run(['cardano-cli',
                            'transaction',
@@ -147,6 +158,7 @@ def sign_tx(nft_dir, payment_skey_path, policy_skey_path, policy_script_path, ra
 
 
 def submit_transaction(signed_matx_path):
+    """Submit signed transaction"""
     proc = subprocess.run(['cardano-cli',
                            'transaction',
                            'submit',
