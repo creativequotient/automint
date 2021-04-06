@@ -62,8 +62,30 @@ def query_utxo(addr):
                            '--mainnet',
                            '--mary-era'], capture_output=True, text=True)
 
+    print(proc.stdout)
+    print(proc.stderr)
+
     # The following filter removes the headers of the UTxO output
     return list(filter(lambda x: x != '', proc.stdout.split('\n')[2:]))
+
+
+def extract_utxo(utxo_str):
+    utxo_str = utxo_str.split(maxsplit=2)
+    txHash = "#".join(utxo_str[0:2])
+
+    assets_str = utxo_str[2].split(maxsplit=3)
+    deposited_amt = int(assets_str[0])
+    if len(assets_str) < 4:
+        other_assets = ""
+    else:
+        other_assets = assets_str[3]
+
+    print("Other assets in UTxO...")
+    print(other_assets)
+
+    return {'txHash': txHash,
+            'deposited_amt': deposited_amt,
+            'other_assets': other_assets}
 
 
 def query_protocol_parameters(nft_dir, force=False):
@@ -101,15 +123,17 @@ def get_key_hash(policy_vkey):
 
 def make_policy_script(nft_dir, key_hash):
     """Format string representation of policy script"""
-    return '{\n  "keyHash": "' + key_hash + '",\n  "type": "sig"\n}'
+    return '{\n  "keyHash": "' + key_hash + '",\n  "type": "sig"\n}\n'
 
 
-def write_policy_script(nft_dir, script):
+def write_policy_script(nft_dir, script, force=False):
     """Write policy script to file and return location"""
     script_path = os.path.join(nft_dir, 'policy.script')
-    with open(script_path, 'w') as script_file:
-        script_file.write(script)
-        script_file.close()
+
+    if force or not os.path.exists(script_path):
+        with open(script_path, 'w') as script_file:
+            script_file.write(script)
+            script_file.close()
     return {'policy_script_path': script_path}
 
 
@@ -123,19 +147,33 @@ def get_policy_id(policy_script_path):
     return proc.stdout.strip('\n')
 
 
-def build_raw_transaction(nft_dir, tx_hash, payment_addr, policy_id, tokens, fee=0, out_amt=0, force=False):
+def build_raw_transaction(nft_dir, tx_hash, payment_addr, policy_id, other_assets, tokens, fee=0, out_amt=0, force=False):
     """Builds transactions"""
     assert type(tokens) == list
 
     def format_assets():
         """Helper function to format native asset tx strings"""
         tokens_w_policy = list(map(lambda token: f'1 {policy_id}.{token}', tokens))
-        return '\"' + ' + '.join(tokens_w_policy) + '\"'
+        return ' + '.join(tokens_w_policy)
 
     raw_matx_path = os.path.join(nft_dir, 'matx.raw')
 
     # Only generate/overwrite the keys if they do not exist or force=True
     if force or not os.path.exists(raw_matx_path):
+        tx_in = f'{tx_hash}'
+        # if other_assets != "":
+        #     tx_in += '+\"' + other_assets + '\"'
+
+        tx_out = f'{payment_addr}+{out_amt}+' + '\"'
+        if other_assets != "":
+            tx_out += other_assets
+            tx_out += " + "
+
+        tx_out += format_assets()
+        tx_out += '\"'
+
+        mint = '\"' + format_assets() + '\"'
+
         cmd = " ".join(['cardano-cli',
                         'transaction',
                         'build-raw',
@@ -143,17 +181,16 @@ def build_raw_transaction(nft_dir, tx_hash, payment_addr, policy_id, tokens, fee
                         '--fee',
                         f'{fee}',
                         '--tx-in',
-                        f'{tx_hash}',
+                        tx_in,
                         '--tx-out',
-                        f'{payment_addr}+{out_amt}+{format_assets()}',
-                        '--mint',
-                        format_assets(),
+                        tx_out,
+                        f'--mint={mint}',
                         '--out-file',
                         raw_matx_path])
 
         proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
         # print(f'{payment_addr}+{fee}+{format_assets()}')
-        # print(cmd)
+        print(cmd)
         # print(proc.stdout)
         print(proc.stderr)
 
@@ -176,6 +213,10 @@ def calculate_tx_fees(raw_matx_path, protocol_json_path):
                            '--mainnet',
                            '--protocol-params-file',
                            protocol_json_path], capture_output=True, text=True)
+
+    print('Calculate min fees...')
+    print(proc.stdout)
+
     return int(proc.stdout.split()[0])
 
 
@@ -185,7 +226,7 @@ def sign_tx(nft_dir, payment_skey_path, policy_skey_path, policy_script_path, ra
 
     # Only generate/overwrite the keys if they do not exist or force=True
     if force or not os.path.exists(signed_matx_path):
-        proc = subprocess.run(['cardano-cli',
+        cmd = ' '.join(['cardano-cli',
                                'transaction',
                                'sign',
                                '--signing-key-file',
@@ -198,8 +239,10 @@ def sign_tx(nft_dir, payment_skey_path, policy_skey_path, policy_script_path, ra
                                '--tx-body-file',
                                raw_matx_path,
                                '--out-file',
-                               signed_matx_path], capture_output=True, text=True)
+                               signed_matx_path])
+        proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
+        print(cmd)
         print(proc.stdout)
 
     return {'signed_matx_path': signed_matx_path}
@@ -216,6 +259,7 @@ def submit_transaction(signed_matx_path):
                            '--mainnet'], capture_output=True, text=True)
 
     print(proc.stdout)
+    print(proc.stdout)
 
     return proc.stdout
 
@@ -228,9 +272,9 @@ def user_confirmation(message, func, **kwargs):
 
 
 if __name__ == '__main__':
-    DIR = os.path.realpath('temp2')
+    DIR = os.path.realpath('temp')
     FORCE = False
-    TOKENS = ['sampleToken01', 'sampleToken02']
+    TOKENS = [f'sampleToken{i:02}' for i in range(15,16)]
 
     # Obtain payment keys
     info = generate_keys(DIR, 'payment', force=FORCE)
@@ -244,13 +288,10 @@ if __name__ == '__main__':
                       addr=info['addr'])
 
     # TODO: generate txHash, this is just a placeholder
-    txHash = '7071b34d10808a1c5963086d0364275119684b3230fa235ac23f7af3afe57bd4#0'
-    deposited_amt = 5000000
-    info.update({'txHash': txHash,
-                 'deposited_amt': deposited_amt})
+    info.update(extract_utxo(query_utxo(info['addr'])[0]))
 
     # Query protocol parameters
-    info.update(query_protocol_parameters(DIR, force=FORCE))
+    info.update(query_protocol_parameters(DIR, force=True))
 
     # Obtain policy keys
     info.update(generate_keys(DIR, 'policy', force=FORCE))
@@ -258,7 +299,7 @@ if __name__ == '__main__':
     # Create policy script
     key_hash = get_key_hash(info['policy_vkey_path'])
     script = make_policy_script(DIR, key_hash)
-    info.update(write_policy_script(DIR, script))
+    info.update(write_policy_script(DIR, script, force=True))
     info.update({'policy': get_policy_id(info['policy_script_path'])})
 
     print(f'key_hash: {key_hash}')
@@ -269,23 +310,27 @@ if __name__ == '__main__':
                                       info['txHash'],
                                       info['addr'],
                                       info['policy'],
+                                      info['other_assets'],
                                       TOKENS,
                                       fee=0,
-                                      force=FORCE))
+                                      force=True))
     tx_fee = calculate_tx_fees(info['raw_matx_path'], info['protocol_json_path'])
     unspent_amt = info['deposited_amt'] - tx_fee
     info.update({'tx_fee': tx_fee,
                  'unspent_amt': unspent_amt})
+
+    print(f'tx fee: {tx_fee}')
 
     # Build transaction again but with fees
     info.update(build_raw_transaction(DIR,
                                       info['txHash'],
                                       info['addr'],
                                       info['policy'],
+                                      info['other_assets'],
                                       TOKENS,
                                       fee=info['tx_fee'],
                                       out_amt=info['unspent_amt'],
-                                      force=FORCE))
+                                      force=True))
 
     # Sign transaction
     info.update(sign_tx(DIR,
@@ -293,7 +338,7 @@ if __name__ == '__main__':
                         info['policy_skey_path'],
                         info['policy_script_path'],
                         info['raw_matx_path'],
-                        force=False))
+                        force=True))
 
     # Submit transaction
     submit_transaction(info['signed_matx_path'])
