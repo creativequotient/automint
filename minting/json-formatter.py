@@ -50,12 +50,12 @@ def make_token_json(metadata_code, policy, max_rarity, collection_name, token_in
     for i in range(1,token_info['max_supply'] + 1):
 
         #jleveille1337 - get NAME, INFO_IMAGE, INFO_NAME from the CSV file
-        token_name = token_info['name'] + '%02d' % i
+        token_name = token_info['name'] + '%03d' % i
         info_name = token_info['info_name']
         ipfs_url = token_info['ipfs_url']
-        attributes = format_trait_list(token_info['attributes_str'], i, token_info['max_supply'], token_info['rarity'], max_rarity)
+        attributes = format_trait_list(token_info['attributes_str'], "%s out of %s" % (i, token_info['max_supply']), token_info['max_supply'], token_info['rarity'], max_rarity)
 
-        nft = {"image": ipfs_url, "name": info_name, "collection": collection_name, "attributes": attributes}
+        nft = {"image": ipfs_url, "name": info_name, "collection": collection_name, "id": i, "attributes": attributes}
 
         pointer.update({token_name: nft})
 
