@@ -90,8 +90,11 @@ class Wallet(object):
         if identifier is None:
             if len(self.UTXOs) == 0:
                 return
-            k = list(self.UTXOs.keys())[0]
-            return self.UTXOs.get(k)
+            k = list(filter(lambda u: self.UTXOs.get(u).get_account().get_lovelace() > 5000000, self.UTXOs.keys()))
+            k = sorted(k, key=lambda u: self.UTXOs.get(u).size())
+            if len(k) == 0:
+                raise Exception('No UTXO could be selected automatically, please specify via flag')
+            return self.UTXOs.get(k[0])
 
         # Returns the UTXO given the identifier if found, None otherwise
         return self.UTXOs.get(identifier, None)
@@ -105,3 +108,6 @@ class Wallet(object):
 
     def get_vkey_path(self):
         return self.v_key_fp
+
+    def get_address(self):
+        return self.addr

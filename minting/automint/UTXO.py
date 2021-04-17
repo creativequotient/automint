@@ -1,5 +1,6 @@
 import copy
 from automint.Account import Account
+from automint.Receiver import Receiver
 
 
 class UTXO(object):
@@ -48,3 +49,11 @@ class UTXO(object):
 
     def __str__(self):
         return f'{self.get_utxo_identifier()}'
+
+    def convert_to_receiver(self, addr):
+        new_receiver = Receiver(addr)
+        new_receiver.account = copy.deepcopy(self.get_account())
+        return new_receiver
+
+    def size(self):
+        return self.account.size()

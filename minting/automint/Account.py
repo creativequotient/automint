@@ -30,15 +30,17 @@ class Account(object):
     def remove_native_token(self, token_id, quantity):
         assert quantity > 0
 
-        # Check if token exists within Account
-        if token_id not in self.native_tokens:
-            return self
-
         new_account = copy.deepcopy(self)
-        new_account.native_tokens[token_id]['quantity'] -= quantity
 
-        if new_account.native_tokens[token_id]['quantity'] == 0:
-            new_account.native_tokens.pop(token_id)
+        if token_id not in new_account.native_tokens:
+            policy_id, token = token_id.split('.')
+            new_account.native_tokens[token_id] = {
+                'name': token,
+                'policy_id': policy_id,
+                'quantity': 0
+            }
+
+        new_account.native_tokens[token_id]['quantity'] -= quantity
 
         return new_account
 
@@ -89,13 +91,13 @@ class Account(object):
         return new_account
 
     def add_ada(self, quantity):
-        return self.add_lovelace(quantity * 1000000)
+        return self.add_lovelace(int(quantity * 1000000))
 
     def remove_ada(self, quantity):
-        return self.remove_lovelace(quantity * 1000000)
+        return self.remove_lovelace(int(quantity * 1000000))
 
     def set_ada(self, quantity):
-        return self.set_lovelace(quantity * 1000000)
+        return self.set_lovelace(int(quantity * 1000000))
 
     def __str__(self):
         assets = []
@@ -107,3 +109,15 @@ class Account(object):
             output += f'+"{" + ".join(assets)}"'
 
         return output
+
+    def size(self):
+        return 1 + len(self.native_tokens)
+
+    def get_lovelace(self):
+        return self.lovelace
+
+    def get_ada(self):
+        return self.lovelace / 1000000
+
+    def get_native_token(self, token_id):
+        return self.native_tokens.get(token_id, None)

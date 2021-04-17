@@ -15,6 +15,12 @@ class Base(object):
     def remove_ada(self, quantity):
         self.account = self.account.remove_ada(quantity)
 
+    def add_lovelace(self, quantity):
+        self.account = self.account.add_lovelace(quantity)
+
+    def remove_lovelace(self, quantity):
+        self.account = self.account.remove_lovelace(quantity)
+
     def add_native_token(self, token_id, quantity):
         self.account = self.account.add_native_token(token_id, quantity)
 
