@@ -15,7 +15,7 @@ if __name__ == '__main__':
     NFT_DIR = os.path.realpath('bobabits_nft')
 
     TEMP_DIR = os.path.join(NFT_DIR, 'tmp')
-    os.path.makedirs(TEMP_DIR, exist_ok=True)
+    os.makedirs(TEMP_DIR, exist_ok=True)
 
     METADATA_FP = os.path.join(NFT_DIR, 'metadata.json')
 
