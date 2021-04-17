@@ -87,10 +87,10 @@ if __name__ == '__main__':
         # Add/remove tokens from the receiver and minting_account
         # (since tokens will be minted/burned)
 
-        # receiver.add_native_token(token_id, 1)
-        # minting_account.add_native_token(token_id, 1)
-        receiver.remove_native_token(token_id, 1)
-        minting_account.remove_native_token(token_id, 1)
+        receiver.add_native_token(token_id, 1)
+        minting_account.add_native_token(token_id, 1)
+        # receiver.remove_native_token(token_id, 1)
+        # minting_account.remove_native_token(token_id, 1)
 
     # Draft transaction with 0 fees. `receiver.get_blank_receiver()`
     # simply returns a clone of the same receiver but with 0 lovelace

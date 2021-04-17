@@ -142,6 +142,8 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
 
     if proc.stderr != '':
         logging.info(f'Error encountered when calculating transcation fee...\n{proc.stdout}')
+        logging.info(f'{proc.stderr}')
+
     return int(proc.stdout.split()[0])
 
 
