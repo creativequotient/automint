@@ -6,6 +6,7 @@ from automint.utxo import UTXO
 from automint.utils import get_protocol_params, get_policy_id, get_key_hash, write_policy_script, get_policy_id, build_raw_transaction, calculate_tx_fee, submit_transaction, sign_tx
 import logging
 import os
+import json
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,7 +37,7 @@ if __name__ == '__main__':
     utxo_summary = ''
     for id in payment_wallet.get_utxos():
         utxo = payment_wallet.get_utxo(identifier=id)
-        utxo_summary += f'\nUTXO: {utxo}\nContents: {utxo.get_account()}'
+        utxo_summary += f'\nUTXO: {utxo}\nContents: {json.dumps(utxo.get_account().native_tokens, indent=4)}'
     logging.info(f'UTXOs found at wallet address...{utxo_summary}')
 
     # Get UTXO to consume in transaction `payment_wallet.get_utxo()`
