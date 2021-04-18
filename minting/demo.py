@@ -1,8 +1,8 @@
-from automint.Account import Account
-from automint.Receiver import Receiver
-from automint.MintingAccount import MintingAccount
-from automint.Wallet import Wallet
-from automint.UTXO import UTXO
+from automint.account import Account
+from automint.receivers import TxReceiver
+from automint.receivers import MintingReceiver
+from automint.wallet import Wallet
+from automint.utxo import UTXO
 from automint.utils import get_protocol_params, get_policy_id, get_key_hash, write_policy_script, get_policy_id, build_raw_transaction, calculate_tx_fee, submit_transaction, sign_tx
 import logging
 import os
@@ -12,15 +12,15 @@ logging.basicConfig(level=logging.INFO)
 
 if __name__ == '__main__':
     # Initial set-up
-    NFT_DIR = os.path.realpath('bobabits_nft')
+    NFT_DIR = os.path.realpath('data/temp_nft')
 
     TEMP_DIR = os.path.join(NFT_DIR, 'tmp')
     os.makedirs(TEMP_DIR, exist_ok=True)
 
-    METADATA_FP = os.path.join(NFT_DIR, 'metadata.json')
+    METADATA_FP = os.path.join(NFT_DIR, 'sample_metadata.json')
 
     # Define tokens to be minted
-    TOKENS = [f'sampleToken{i:02}' for i in range(20)]
+    TOKENS = [f'sampleToken{i:02}' for i in range(5)]
 
     # Define wallets
     payment_wallet = Wallet(NFT_DIR, 'payment') # This wallet is for transactions
@@ -80,17 +80,17 @@ if __name__ == '__main__':
     # actually sent the contents of the entire UTXO to an arbitrary
     # address. In this sample, we are just sending it back to the
     # minting wallet
-    receiver = input_utxo.convert_to_receiver(payment_wallet.get_address())
-    minting_account = MintingAccount()
+    tx_receiver = input_utxo.convert_to_receiver(payment_wallet.get_address())
+    minting_receiver = MintingReceiver()
     for token in TOKENS:
         token_id = f'{policy_id}.{token}'
         # Add/remove tokens from the receiver and minting_account
         # (since tokens will be minted/burned)
 
-        receiver.add_native_token(token_id, 1)
-        minting_account.add_native_token(token_id, 1)
-        # receiver.remove_native_token(token_id, 1)
-        # minting_account.remove_native_token(token_id, 1)
+        tx_receiver.add_native_token(token_id, 1)
+        minting_receiver.add_native_token(token_id, 1)
+        # tx_receiver.remove_native_token(token_id, 1)
+        # minting_receiver.remove_native_token(token_id, 1)
 
     # Draft transaction with 0 fees. `receiver.get_blank_receiver()`
     # simply returns a clone of the same receiver but with 0 lovelace
@@ -101,25 +101,25 @@ if __name__ == '__main__':
     # be added, simply omit the argument.
     raw_matx_path = build_raw_transaction(TEMP_DIR,
                                           input_utxo,
-                                          receiver.get_blank_receiver(),
+                                          tx_receiver.get_blank_receiver(),
                                           policy_id,
-                                          minting_account,
+                                          minting_receiver,
                                           metadata=METADATA_FP)
     logging.info(f'Draft transaction written to {raw_matx_path}...')
 
     # Caculate fees
-    fee = calculate_tx_fee(raw_matx_path, protocol_param_fp, input_utxo, receiver)
+    fee = calculate_tx_fee(raw_matx_path, protocol_param_fp, input_utxo, tx_receiver)
     logging.info(f'Calculated transaction fee: {fee} lovelace')
 
     # Adjust fees in lovelace in receiver
-    receiver.remove_lovelace(fee)
+    tx_receiver.remove_lovelace(fee)
 
     # Draft transaction but with fees accounted for
     raw_matx_path = build_raw_transaction(TEMP_DIR,
                                           input_utxo,
-                                          receiver,
+                                          tx_receiver,
                                           policy_id,
-                                          minting_account,
+                                          minting_receiver,
                                           fee=fee,
                                           metadata=METADATA_FP)
     logging.info(f'Draft transaction with fees written to {raw_matx_path}...')
