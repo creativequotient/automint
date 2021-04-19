@@ -168,11 +168,11 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, script_path=None, force=Fal
         cmd_builder.append('--signing-key-file')
         cmd_builder.append(wallet.get_skey_path())
 
-    if script:
-        cmd_builder.apend('--script-file')
+    if script_path:
+        cmd_builder.append('--script-file')
         cmd_builder.append(script_path)
 
-    cmd = ' '.join()
+    cmd = ' '.join(cmd_builder)
 
     proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 

@@ -58,7 +58,7 @@ class Wallet(object):
         assert os.path.exists(self.addr_fp)
 
         with open(self.addr_fp, 'r') as addr_f:
-            self.addr = addr_f.read()
+            self.addr = addr_f.read().strip()
             addr_f.close()
 
         # TODO: Check that address is bech32 valid
