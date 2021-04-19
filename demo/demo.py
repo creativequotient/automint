@@ -37,7 +37,7 @@ if __name__ == '__main__':
     utxo_summary = ''
     for id in payment_wallet.get_utxos():
         utxo = payment_wallet.get_utxo(identifier=id)
-        utxo_summary += f'\nUTXO: {utxo}\nContents: {json.dumps(utxo.get_account().native_tokens, indent=4)}'
+        utxo_summary += f'\nUTXO: {utxo}\nADA:: {utxo.get_account().get_ada()}\nContents: {json.dumps(utxo.get_account().native_tokens, indent=4)}'
     logging.info(f'UTXOs found at wallet address...{utxo_summary}')
 
     # Get UTXO to consume in transaction `payment_wallet.get_utxo()`

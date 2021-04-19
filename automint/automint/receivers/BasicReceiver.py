@@ -37,3 +37,6 @@ class BasicReceiver(object):
 
     def duplicate(self):
         return copy.deepcopy(self)
+
+    def transfer_all(self, other_receiver):
+        other_receiver.account = self.account + other_receiver.account

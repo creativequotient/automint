@@ -64,7 +64,7 @@ class Account(object):
         return new_account
 
     def add_lovelace(self, quantity):
-        assert quantity > 0
+        assert quantity >= 0
 
         new_account = copy.deepcopy(self)
         new_account.lovelace += quantity
@@ -72,7 +72,7 @@ class Account(object):
         return new_account
 
     def remove_lovelace(self, quantity):
-        assert quantity > 0
+        assert quantity >= 0
 
         new_account = copy.deepcopy(self)
         new_account.lovelace -= quantity
@@ -130,4 +130,14 @@ class Account(object):
 
     def duplicate(self):
         new_account = copy.deepcopy(self)
+        return new_account
+
+    def __add__(self, other_account):
+        new_account = Account()
+        new_account = new_account.add_lovelace(self.get_lovelace())
+        new_account = new_account.add_lovelace(other_account.get_lovelace())
+        for token_id in self.native_tokens.keys():
+            new_account = new_account.add_native_token(token_id, self.get_native_token(token_id)['quantity'])
+        for token_id in other_account.native_tokens.keys():
+            new_account = new_account.add_native_token(token_id, other_account.get_native_token(token_id)['quantity'])
         return new_account

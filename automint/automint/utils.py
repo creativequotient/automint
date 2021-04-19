@@ -70,7 +70,7 @@ def get_policy_id(policy_script_path):
                            policy_script_path], capture_output=True, text=True)
     return proc.stdout.strip('\n')
 
-def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id,  minting_account=None, fee=0, metadata=None):
+def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None):
     """Builds transactions"""
 
     if type(input_utxos) != list:
@@ -147,25 +147,33 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     return int(proc.stdout.split()[0])
 
 
-def sign_tx(nft_dir, payment_skey_path, policy_skey_path, policy_script_path, raw_matx_path, force=False):
+def sign_tx(nft_dir, signing_wallets, raw_matx_path, script_path=None, force=False):
     """Generate and write signed transaction file"""
+    if type(signing_wallets) != list:
+        signing_wallets = [signing_wallets]
+
     signed_matx_path = os.path.join(nft_dir, 'matx.signed')
 
     # Only generate/overwrite the keys if they do not exist or force=True
-    cmd = ' '.join([CARDANO_CLI.replace(' ', '\ '),
+    cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
                     'transaction',
                     'sign',
-                    '--signing-key-file',
-                    payment_skey_path,
-                    '--signing-key-file',
-                    policy_skey_path,
-                    '--script-file',
-                    policy_script_path,
                     '--mainnet',
                     '--tx-body-file',
                     raw_matx_path,
                     '--out-file',
-                    signed_matx_path])
+                    signed_matx_path]
+
+    for wallet in signing_wallets:
+        cmd_builder.append('--signing-key-file')
+        cmd_builder.append(wallet.get_skey_path())
+
+    if script:
+        cmd_builder.apend('--script-file')
+        cmd_builder.append(script_path)
+
+    cmd = ' '.join()
+
     proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if proc.stderr != '':
