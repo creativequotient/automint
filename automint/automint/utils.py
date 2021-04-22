@@ -2,6 +2,7 @@ import subprocess
 import os
 import logging
 import json
+import requests
 from automint.config import CARDANO_CLI
 
 logging.basicConfig(level=logging.INFO)
@@ -61,6 +62,28 @@ def write_policy_script(working_dir, keyHash, force=False):
     return script_path
 
 
+def write_policy_script_with_time_lock(working_dir, keyHash, before, force=False):
+    """Write policy script to file and return location"""
+    script_path = os.path.join(working_dir, 'policy.script')
+
+    if force or not os.path.exists(script_path):
+        logging.info(f'Writing policy script to {script_path}')
+        with open(script_path, 'w') as script_f:
+            json.dump({
+                'type': 'all',
+                'scripts':[{
+                    'keyHash': keyHash,
+                    'type': 'sig'
+                },{
+                    'slot': before,
+                    'type': 'before'
+                }]
+            }, script_f, indent=4)
+            script_f.close()
+
+    return script_path
+
+
 def get_policy_id(policy_script_path):
     """Return policy id given policy script"""
     proc = subprocess.run([CARDANO_CLI,
@@ -70,7 +93,8 @@ def get_policy_id(policy_script_path):
                            policy_script_path], capture_output=True, text=True)
     return proc.stdout.strip('\n')
 
-def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None):
+
+def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None, invalid_after=None):
     """Builds transactions"""
 
     if type(input_utxos) != list:
@@ -105,6 +129,12 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
     if metadata:
         cmd_builder.append('--metadata-json-file')
         cmd_builder.append(metadata)
+
+    if invalid_after:
+
+        assert type(invalid_after) == int
+        cmd_builder.append('--invalid-hereafter')
+        cmd_builder.append(str(invalid_after))
 
     cmd = " ".join(cmd_builder)
 
@@ -197,3 +227,31 @@ def submit_transaction(signed_matx_path):
         return False
     logging.info(f'{proc.stdout}')
     return True
+
+
+def get_return_address_from_utxo(utxo):
+    try:
+        r = requests.get(f"https://cardanoscan.io/transaction/{utxo}")
+
+        content = r.content.decode("utf-8").split(
+            'FROM ADDRESSES (INPUTS)</span></div></div><div class=mt-4><div class="d-flex flex-row '
+            'justify-content-between px-3"><div><strong>Address</strong></div><div><strong>Amount</strong></div></div><hr class=darkHR><div data-simplebar><div class="d-flex flex-row justify-content-between px-2"><div class=addressField><div class="row align-items-center"><div class=col-auto>')
+        sub = content[1].split("span")
+        address = sub[0]
+        address = address.replace("<a href=/address/", "").replace("><", "")
+        return address
+    except:
+        return None
+
+
+def get_stake_key(address):
+    try:
+        r = requests.get(f"https://cardanoscan.io/address/{address}")
+
+        content = r.content.decode("utf-8").split('<strong>')[2].split('</strong')[0]
+
+        return content
+
+    except Exception as e:
+
+        return None

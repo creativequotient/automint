@@ -66,6 +66,8 @@ class Wallet(object):
 
     def query_utxo(self):
         # Query the blockchain for all UTXOs in this wallet
+        self.UTXOs = {}
+
         proc = subprocess.run([CARDANO_CLI,
                                'query',
                                'utxo',
