@@ -6,7 +6,7 @@ import requests
 from automint.config import CARDANO_CLI
 
 
-logger = logger.getLevelName(__name__)
+logger = logging.getLevelName(__name__)
 
 
 def get_protocol_params(working_dir):
@@ -18,7 +18,6 @@ def get_protocol_params(working_dir):
                            'query',
                            'protocol-parameters',
                            '--mainnet',
-                           '--mary-era',
                            '--out-file',
                            protocol_json_path], capture_output=True, text=True)
 
@@ -110,7 +109,6 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
     cmd_builder  = [CARDANO_CLI.replace(' ', '\ '),
                     'transaction',
                     'build-raw',
-                    '--mary-era',
                     '--fee',
                     f'{fee}',
                     '--out-file',

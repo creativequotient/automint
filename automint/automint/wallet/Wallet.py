@@ -5,7 +5,7 @@ from automint.utxo import UTXO
 from automint.config import CARDANO_CLI
 
 
-logger = logger.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 # This class will represent one wallet and support querying of wallet
@@ -74,8 +74,7 @@ class Wallet(object):
                                'utxo',
                                '--address',
                                self.addr,
-                               '--mainnet',
-                               '--mary-era'], capture_output=True, text=True)
+                               '--mainnet'], capture_output=True, text=True)
         if proc.stderr != "":
             logger.info(f'Error encountered when querying UTXO for wallet {self.name}\n{proc.stderr}')
 
