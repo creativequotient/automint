@@ -3,7 +3,7 @@ import subprocess
 import os
 
 
-def get_files(dir_path, ext='.png'):
+def get_files(dir_path, ext='.jpg'):
     relative_paths = os.listdir(dir_path)
     relative_paths = list(filter(lambda fp: ext in fp, relative_paths))
     return list(map(lambda rel_p: os.path.join(dir_path, rel_p), relative_paths))
@@ -22,9 +22,27 @@ def ipfs_add_local(file_path):
 
 
 def pin_with_pinata(cid, name):
-    proc = subprocess.run(['ipfs', 'pin', 'remote', 'add', '--service=pinata', f'--name={name}', str(cid)], capture_output=True, text=True)
+    proc = subprocess.run(['ipfs', 'pin', 'remote', 'add', '--service=pinata', f'--name={name}', str(cid)], capture_output=True, text=True, timeout=20)
     print(f'Uploaded cid: {cid}')
     # print(proc.stdout)
+    if proc.stderr != "":
+        print(f'Error encountered when uploading to pinata for {name} with cid {cid}')
+        print(proc.stderr)
+        return False
+    return True
+
+
+def proc(fp):
+    name = os.path.basename(fp)
+    cid = ipfs_add_local(fp)
+    if cid == "":
+        print(f'{fp} failed to upload!')
+        return ""
+    while True:
+        successfully_pinned = pin_with_pinata(cid, name)
+        if successfully_pinned:
+            break
+    return cid
 
 
 if __name__ == '__main__':
@@ -32,7 +50,9 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input', help='Path to directory containing media to upload', required=True)
     args = vars(parser.parse_args())
 
-    files_to_upload = get_files(args['input'])
+    files_to_upload = sorted(get_files(args['input']))
+
+    print(files_to_upload)
 
     info = {}
 
