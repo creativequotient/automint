@@ -256,3 +256,13 @@ def get_stake_key(address):
     except Exception as e:
 
         return None
+
+
+def get_cli_version():
+    proc = subprocess.run([CARDANO_CLI,
+                           '--version'])
+
+    if proc.stderr != '':
+        logger.info('Unable to get version')
+
+    return p.stdout.split()[1]
