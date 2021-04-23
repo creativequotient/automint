@@ -32,7 +32,7 @@ def get_key_hash(policy_vkey_path):
     """Generate and return key hash given policy verification key"""
 
     if not os.path.exists(policy_vkey_path):
-        raise Exception(f'Policy verification key file {policy_vkey} does not exists.')
+        raise Exception(f'Policy verification key file expected at {policy_vkey_path} does not exists.')
 
     proc = subprocess.run([CARDANO_CLI,
                            'address',
@@ -267,4 +267,4 @@ def get_cli_version():
     if proc.stderr != '':
         logger.info('Unable to get version')
 
-    return p.stdout.split()[1]
+    return proc.stdout.split()[1]

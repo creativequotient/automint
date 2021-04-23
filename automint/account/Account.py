@@ -52,7 +52,7 @@ class Account(object):
 
         new_account = copy.deepcopy(self)
         policy_id, token = token_id.split('.')
-        new_account.native_tokens[toke_id] = {
+        new_account.native_tokens[token_id] = {
             'name': token,
             'policy_id': policy_id,
             'quantity': quantity
