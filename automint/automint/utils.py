@@ -6,7 +6,7 @@ import requests
 from automint.config import CARDANO_CLI
 
 
-logger = logging.getLevelName(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_protocol_params(working_dir):
@@ -137,8 +137,10 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
 
     cmd = " ".join(cmd_builder)
 
-    logger.info(f'Transaction build command:\n{cmd}')
+    logger.debug(f'Transaction build command:\n{cmd}')
+
     proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
     if proc.stderr != "":
         logger.error(f'Error encountered when building transaction\n{cmd_builder}\n{proc.stderr}')
 

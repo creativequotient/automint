@@ -126,7 +126,7 @@ class Account(object):
         return self.lovelace / 1000000
 
     def get_native_token(self, token_id):
-        return self.native_tokens.get(token_id, None)
+        return self.native_tokens.get(token_id, 0)
 
     def duplicate(self):
         new_account = copy.deepcopy(self)

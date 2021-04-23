@@ -40,3 +40,9 @@ class BasicReceiver(object):
 
     def transfer_all(self, other_receiver):
         other_receiver.account = self.account + other_receiver.account
+
+    def get_lovelace(self):
+        return self.account.get_lovelace()
+
+    def get_native_token(self, token_id):
+        return self.account.get_native_token(token_id)
