@@ -4,7 +4,8 @@ import logging
 from automint.utxo import UTXO
 from automint.config import CARDANO_CLI
 
-logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 
 # This class will represent one wallet and support querying of wallet
@@ -29,7 +30,7 @@ class Wallet(object):
 
     def set_up(self):
         if not os.path.exists(self.s_key_fp) and not os.path.exists(self.v_key_fp):
-            logging.info(f'Signing and verification keys for wallet {self.name} not found, generating...')
+            logger.info(f'Signing and verification keys for wallet {self.name} not found, generating...')
             proc = subprocess.run([CARDANO_CLI,
                                    'address',
                                    'key-gen',
@@ -38,10 +39,10 @@ class Wallet(object):
                                    '--signing-key-file',
                                    self.s_key_fp], capture_output=True, text=True)
             if proc.stderr != "":
-                logging.info(f'Error encountered when generating wallet keys\n{proc.stderr}')
+                logger.info(f'Error encountered when generating wallet keys\n{proc.stderr}')
 
         if not os.path.exists(self.addr_fp):
-            logging.info(f'Address file for wallet {self.name} not found, generating...')
+            logger.info(f'Address file for wallet {self.name} not found, generating...')
             proc = subprocess.run([CARDANO_CLI,
                                    'address',
                                    'build',
@@ -51,7 +52,7 @@ class Wallet(object):
                                    self.addr_fp,
                                    '--mainnet'], capture_output=True, text=True)
             if proc.stderr != "":
-                logging.info(f'Error encountered when generating wallet address\n{proc.stderr}')
+                logger.info(f'Error encountered when generating wallet address\n{proc.stderr}')
 
         assert os.path.exists(self.s_key_fp)
         assert os.path.exists(self.v_key_fp)
@@ -73,10 +74,9 @@ class Wallet(object):
                                'utxo',
                                '--address',
                                self.addr,
-                               '--mainnet',
-                               '--mary-era'], capture_output=True, text=True)
+                               '--mainnet'], capture_output=True, text=True)
         if proc.stderr != "":
-            logging.info(f'Error encountered when querying UTXO for wallet {self.name}\n{proc.stderr}')
+            logger.info(f'Error encountered when querying UTXO for wallet {self.name}\n{proc.stderr}')
 
         raw_utxo_str_list = list(filter(lambda x: x != '', proc.stdout.split('\n')[2:]))
         for raw_utxo_str in raw_utxo_str_list:
