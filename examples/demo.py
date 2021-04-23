@@ -129,8 +129,8 @@ if __name__ == '__main__':
     signed_matx_path = sign_tx(TEMP_DIR,
                                payment_wallet.get_skey_path(),
                                policy_wallet.get_skey_path(),
-                               policy_script_fp,
-                               raw_matx_path)
+                               raw_matx_path,
+                               script_path=policy_script_fp)
     logging.info(f'Signed transaction written to {signed_matx_path}')
 
     # Submit transaction to the blockchain
