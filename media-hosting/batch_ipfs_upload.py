@@ -3,7 +3,7 @@ import subprocess
 import os
 
 
-def get_files(dir_path, ext='.png'):
+def get_files(dir_path, ext='.jpg'):
     relative_paths = os.listdir(dir_path)
     relative_paths = list(filter(lambda fp: ext in fp, relative_paths))
     return list(map(lambda rel_p: os.path.join(dir_path, rel_p), relative_paths))
@@ -51,6 +51,8 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
 
     files_to_upload = sorted(get_files(args['input']))
+
+    print(files_to_upload)
 
     info = {}
 
