@@ -262,9 +262,21 @@ def get_stake_key(address):
 
 def get_cli_version():
     proc = subprocess.run([CARDANO_CLI,
-                           '--version'])
+                           '--version'], capture_output=True, text=True,)
 
     if proc.stderr != '':
-        logger.info('Unable to get version')
+        logger.error('Unable to get version')
 
     return proc.stdout.split()[1]
+
+
+def query_tip():
+    proc = subprocess.run([CARDANO_CLI,
+                           'query',
+                           'tip',
+                           '--mainnet'], capture_output=True, text=True)
+
+    if proc.stderr != '':
+        logger.error('Unable to query tip')
+
+    return json.loads(proc.stdout)
