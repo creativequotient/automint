@@ -94,7 +94,7 @@ def get_policy_id(policy_script_path):
     return proc.stdout.strip('\n')
 
 
-def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None, invalid_after=None, script_path=None):
+def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None, invalid_after=None):
     """Builds transactions"""
 
     if type(input_utxos) != list:
@@ -134,10 +134,6 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
         assert type(invalid_after) == int
         cmd_builder.append('--invalid-hereafter')
         cmd_builder.append(str(invalid_after))
-
-    if minting_account:
-        cmd_builder.append('--minting-script-file')
-        cmd_builder.append(script_path)
 
     cmd = " ".join(cmd_builder)
 
@@ -182,7 +178,7 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     return int(proc.stdout.split()[0])
 
 
-def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False):
+def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, script_path=None):
     """Generate and write signed transaction file"""
     if type(signing_wallets) != list:
         signing_wallets = [signing_wallets]
@@ -202,6 +198,10 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False):
     for wallet in signing_wallets:
         cmd_builder.append('--signing-key-file')
         cmd_builder.append(wallet.get_skey_path())
+
+    if script_path:
+        cmd_builder.append('--script-file')
+        cmd_builder.append(script_path)
 
     cmd = ' '.join(cmd_builder)
 
