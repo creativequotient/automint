@@ -255,7 +255,7 @@ def get_stake_key(address):
     try:
         req = requests.get(f"https://cardanoscan.io/address/{address}")
 
-        return = content.decode("utf-8").split('<strong>')[2].split('</strong')[0]
+        return content.decode("utf-8").split('<strong>')[2].split('</strong')[0]
 
     except requests.exceptions.RequestException as e:
         logger.error(f'Unable to acquire stake key for {address}')
