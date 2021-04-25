@@ -247,7 +247,7 @@ def get_return_address_from_utxo(utxo):
         address = sub[0]
         address = address.replace("<a href=/address/", "").replace("><", "")
         return address
-    except requests.exceptions.RequestException as e::
+    except requests.exceptions.RequestException as e:
         return ""
 
 
