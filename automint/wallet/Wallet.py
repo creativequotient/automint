@@ -39,7 +39,7 @@ class Wallet(object):
                                    '--signing-key-file',
                                    self.s_key_fp], capture_output=True, text=True)
             if proc.stderr != "":
-                logger.info(f'Error encountered when generating wallet keys\n{proc.stderr}')
+                logger.error(f'Error encountered when generating wallet keys\n{proc.stderr}')
 
         if not os.path.exists(self.addr_fp):
             logger.info(f'Address file for wallet {self.name} not found, generating...')

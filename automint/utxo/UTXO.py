@@ -32,7 +32,6 @@ class UTXO(object):
         lovelace = int(tokens_str[0].replace('lovelace', '').strip())
         self.account = self.account.add_lovelace(lovelace)
 
-
         # Extract native_tokens
         if len(tokens_str) >= 2:
             native_assets_str = tokens_str[1:]
