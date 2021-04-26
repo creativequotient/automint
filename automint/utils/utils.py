@@ -210,6 +210,7 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False):
 
     if proc.stderr != '':
         logger.error(f'Error encountered when signing transaction\n{proc.stderr}')
+        return ''
 
     return signed_matx_path
 
