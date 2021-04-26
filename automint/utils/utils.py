@@ -94,7 +94,7 @@ def get_policy_id(policy_script_path):
     return proc.stdout.strip('\n')
 
 
-def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None, invalid_after=None):
+def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None, invalid_after=None, script_path=None):
     """Builds transactions"""
 
     if type(input_utxos) != list:
@@ -126,15 +126,18 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
         cmd_builder.append(f'--mint={minting_account}')
 
     if metadata:
-        if not os.path.exists(metadata):
-            raise Exception(f'Metadata JSON file expected at {metadata} not found')
         cmd_builder.append('--metadata-json-file')
         cmd_builder.append(metadata)
 
     if invalid_after:
+
         assert type(invalid_after) == int
         cmd_builder.append('--invalid-hereafter')
         cmd_builder.append(str(invalid_after))
+
+    if minting_account:
+        cmd_builder.append('--minting-script-file')
+        cmd_builder.append(script_path)
 
     cmd = " ".join(cmd_builder)
 
@@ -144,7 +147,6 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
 
     if proc.stderr != "":
         logger.error(f'Error encountered when building transaction\n{cmd_builder}\n{proc.stderr}')
-        return ""
 
     return raw_matx_path
 
@@ -181,7 +183,7 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     return int(proc.stdout.split()[0])
 
 
-def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, script_path=None):
+def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False):
     """Generate and write signed transaction file"""
     if type(signing_wallets) != list:
         signing_wallets = [signing_wallets]
@@ -202,17 +204,12 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, script_path=No
         cmd_builder.append('--signing-key-file')
         cmd_builder.append(wallet.get_skey_path())
 
-    if script_path:
-        cmd_builder.append('--script-file')
-        cmd_builder.append(script_path)
-
     cmd = ' '.join(cmd_builder)
 
     proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if proc.stderr != '':
         logger.error(f'Error encountered when signing transaction\n{proc.stderr}')
-        return ""
 
     return signed_matx_path
 
