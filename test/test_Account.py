@@ -10,19 +10,32 @@ class AccountTests(unittest.TestCase):
         self.assertEqual(account.get_ada(), 0.001)
 
     def test_account_addition(self):
+        '''This test checks for the addition of lovelace'''
         account_a = Account().add_lovelace(1500000)
         account_b = Account().add_lovelace(1500000)
-        account_c = account_a + account_b
-        self.assertEqual(account_c.get_lovelace(), 3000000)
-        self.assertEqual(account_c.get_ada(), 3)
+        account_c = Account().add_lovelace(3000000)
+        self.assertEqual(account_a + account_b, account_c)
 
     def test_account_str(self):
+        '''This test checks for proper conversion of Account objects to string representation'''
+
+        # Only contains lovelace
         account = Account().add_lovelace(1500000)
         self.assertEqual(str(account), '1500000')
 
-        account = Account().add_lovelace(1500000).add_native_token('12345.tokenA', 2)
+        # Contains lovelace and a native token
+        account = Account().add_lovelace(1500000)
+        account = account.add_native_token('12345.tokenA', 2)
         self.assertEqual(str(account), '1500000+"2 12345.tokenA"')
 
+        # Contains lovelace and a native token (added separately)
+        account = Account().add_lovelace(1500000)
+        account = account.add_native_token('12345.tokenA', 2)
+        account = account.add_native_token('12345.tokenA', 2)
+        self.assertEqual(str(account), '1500000+"4 12345.tokenA"')
 
-if __name__ == '__main__':
-    unittest.main()
+        # Contains lovelace and different native tokens
+        account = Account().add_lovelace(1500000)
+        account = account.add_native_token('12345.tokenA', 2)
+        account = account.add_native_token('56789.tokenA', 2)
+        self.assertEqual(str(account), '1500000+"2 12345.tokenA + 2 56789.tokenA"')
