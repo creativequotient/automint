@@ -2,7 +2,7 @@ import os
 import subprocess
 import logging
 from automint.utxo import UTXO
-from automint.config import CARDANO_CLI
+from automint.config import CARDANO_CLI, TESTNET_MAGIC_DEFAULT
 
 
 logger = logging.getLogger(__name__)
@@ -11,8 +11,10 @@ logger = logging.getLogger(__name__)
 # This class will represent one wallet and support querying of wallet
 # details such as utxo-s, signing and verification keys, etc
 class Wallet(object):
-    def __init__(self, wallet_dir, wallet_name):
+    def __init__(self, wallet_dir, wallet_name, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
         self.name = wallet_name
+        self.use_testnet = use_testnet
+        self.testnet_magic = testnet_magic
 
         # Create wallet directory
         os.makedirs(wallet_dir, exist_ok=True)
@@ -43,15 +45,26 @@ class Wallet(object):
 
         if not os.path.exists(self.addr_fp):
             logger.info(f'Address file for wallet {self.name} not found, generating...')
-            proc = subprocess.run([CARDANO_CLI,
-                                   'address',
-                                   'build',
-                                   '--payment-verification-key-file',
-                                   self.v_key_fp,
-                                   '--out-file',
-                                   self.addr_fp,
-                                   '--mainnet'], capture_output=True, text=True)
-            if proc.stderr != "":
+
+            cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                           'address',
+                           'build',
+                           '--payment-verification-key-file',
+                           self.v_key_fp,
+                           '--out-file',
+                           self.addr_fp]
+
+            if self.use_testnet:
+                cmd_builder.append('--testnet-magic')
+                cmd_builder.append(str(self.testnet_magic))
+            else:
+                cmd_builder.append('--mainnet')
+
+            cmd = ' '.join(cmd_builder)
+
+            proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+            if proc.stderr != '':
                 logger.info(f'Error encountered when generating wallet address\n{proc.stderr}')
 
         assert os.path.exists(self.s_key_fp)
@@ -69,13 +82,23 @@ class Wallet(object):
         # Query the blockchain for all UTXOs in this wallet
         self.UTXOs = {}
 
-        proc = subprocess.run([CARDANO_CLI,
-                               'query',
-                               'utxo',
-                               '--address',
-                               self.addr,
-                               '--mainnet'], capture_output=True, text=True)
-        if proc.stderr != "":
+        cmd_builder = [CARDANO_CLI,
+                       'query',
+                       'utxo',
+                       '--address',
+                       self.addr]
+
+        if self.use_testnet:
+            cmd_builder.append('--testnet-magic')
+            cmd_builder.append(str(self.testnet_magic))
+        else:
+            cmd_builder.append('--mainnet')
+
+        cmd = ' '.join(cmd_builder)
+
+        proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+        if proc.stderr != '':
             logger.info(f'Error encountered when querying UTXO for wallet {self.name}\n{proc.stderr}')
 
         raw_utxo_str_list = list(filter(lambda x: x != '', proc.stdout.split('\n')[2:]))

@@ -3,27 +3,36 @@ import os
 import logging
 import json
 import requests
-from automint.config import CARDANO_CLI
+from automint.config import CARDANO_CLI, TESTNET_MAGIC_DEFAULT
 
 
 logger = logging.getLogger(__name__)
 
 
-def get_protocol_params(working_dir):
+def get_protocol_params(working_dir, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Query protocol parameters and write to file"""
 
     protocol_json_path = os.path.join(working_dir, 'protocol.json')
 
-    proc = subprocess.run([CARDANO_CLI,
-                           'query',
-                           'protocol-parameters',
-                           '--mainnet',
-                           '--out-file',
-                           protocol_json_path], capture_output=True, text=True)
+    cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                   'query',
+                   'protocol-parameters',
+                   '--out-file',
+                   protocol_json_path]
 
-    if proc.stderr != "":
+    if use_testnet:
+        cmd_builder.append('--testnet-magic')
+        cmd_builder.append(str(testnet_magic))
+    else:
+        cmd_builder.append('--mainnet')
+
+    cmd = ' '.join(cmd_builder)
+
+    proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+    if proc.stderr != '':
         logger.error(f'Failed to fetch protocol parameters...')
-        return ""
+        return ''
 
     return protocol_json_path
 
@@ -145,13 +154,13 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
 
     proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
-    if proc.stderr != "":
+    if proc.stderr != '':
         logger.error(f'Error encountered when building transaction\n{cmd_builder}\n{proc.stderr}')
 
     return raw_matx_path
 
 
-def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_accounts):
+def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_accounts, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Calculate transaction fees"""
 
     if type(input_utxos) != list:
@@ -160,20 +169,29 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     if type(output_accounts) != list:
         output_accounts = [output_accounts]
 
-    proc = subprocess.run([CARDANO_CLI,
-                           'transaction',
-                           'calculate-min-fee',
-                           '--tx-body-file',
-                           raw_matx_path,
-                           '--tx-in-count',
-                           f'{len(input_utxos)}',
-                           '--tx-out-count',
-                           f'{len(output_accounts)}',
-                           '--witness-count',
-                           '2',
-                           '--mainnet',
-                           '--protocol-params-file',
-                           protocol_json_path], capture_output=True, text=True)
+    cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                 'transaction',
+                 'calculate-min-fee',
+                 '--tx-body-file',
+                 raw_matx_path,
+                 '--tx-in-count',
+                 f'{len(input_utxos)}',
+                 '--tx-out-count',
+                 f'{len(output_accounts)}',
+                 '--witness-count',
+                 '2',
+                 '--protocol-params-file',
+                 protocol_json_path]
+
+    if use_testnet:
+        cmd_builder.append('--testnet-magic')
+        cmd_builder.append(str(testnet_magic))
+    else:
+        cmd_builder.append('--mainnet')
+
+    cmd = ' '.join(cmd_builder)
+
+    proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if proc.stderr != '':
         logger.error(f'Error encountered when calculating transcation fee...\n{proc.stdout}')
@@ -183,7 +201,7 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     return int(proc.stdout.split()[0])
 
 
-def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False):
+def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Generate and write signed transaction file"""
     if type(signing_wallets) != list:
         signing_wallets = [signing_wallets]
@@ -192,17 +210,22 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False):
 
     # Only generate/overwrite the keys if they do not exist or force=True
     cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
-                    'transaction',
-                    'sign',
-                    '--mainnet',
-                    '--tx-body-file',
-                    raw_matx_path,
-                    '--out-file',
-                    signed_matx_path]
+                   'transaction',
+                   'sign',
+                   '--tx-body-file',
+                   raw_matx_path,
+                   '--out-file',
+                   signed_matx_path]
 
     for wallet in signing_wallets:
         cmd_builder.append('--signing-key-file')
         cmd_builder.append(wallet.get_skey_path())
+
+    if use_testnet:
+        cmd_builder.append('--testnet-magic')
+        cmd_builder.append(str(testnet_magic))
+    else:
+        cmd_builder.append('--mainnet')
 
     cmd = ' '.join(cmd_builder)
 
@@ -215,15 +238,24 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False):
     return signed_matx_path
 
 
-def submit_transaction(signed_matx_path):
+def submit_transaction(signed_matx_path, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Submit signed transaction"""
 
-    proc = subprocess.run([CARDANO_CLI,
-                           'transaction',
-                           'submit',
-                           '--tx-file',
-                           signed_matx_path,
-                           '--mainnet'], capture_output=True, text=True)
+    cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                   'transaction',
+                   'submit',
+                   '--tx-file',
+                   signed_matx_path]
+
+    if use_testnet:
+            cmd_builder.append('--testnet-magic')
+            cmd_builder.append(str(testnet_magic))
+    else:
+        cmd_builder.append('--mainnet')
+
+    cmd = ' '.join(cmd_builder)
+
+    proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if proc.stderr != '':
         logger.error(f'Error encountered when submitting transaction\n{proc.stderr}')
@@ -246,7 +278,7 @@ def get_return_address_from_utxo(utxo):
         address = address.replace("<a href=/address/", "").replace("><", "")
         return address
     except requests.exceptions.RequestException as e:
-        return ""
+        return ''
 
 
 def get_stake_key(address):
@@ -266,16 +298,25 @@ def get_cli_version():
 
     if proc.stderr != '':
         logger.error('Unable to get version')
-        return ""
+        return ''
 
     return proc.stdout.split()[1]
 
 
-def query_tip():
-    proc = subprocess.run([CARDANO_CLI,
-                           'query',
-                           'tip',
-                           '--mainnet'], capture_output=True, text=True)
+def query_tip(use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
+    cmd_builder = [CARDANO_CLI,
+                   'query',
+                   'tip']
+
+    if use_testnet:
+        cmd_builder.append('--testnet-magic')
+        cmd_builder.append(str(testnet_magic))
+    else:
+        cmd_builder.append('--mainnet')
+
+    cmd = ' '.join(cmd_builder)
+
+    proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if proc.stderr != '':
         logger.error('Unable to query tip information')
