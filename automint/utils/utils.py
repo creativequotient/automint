@@ -160,8 +160,10 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
     return raw_matx_path
 
 
-def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_accounts, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
+def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_accounts, witness_count=2, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Calculate transaction fees"""
+
+    assert witness_count >= len(input_utxos)
 
     if type(input_utxos) != list:
         input_utxos = [input_utxos]
@@ -179,7 +181,7 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
                  '--tx-out-count',
                  f'{len(output_accounts)}',
                  '--witness-count',
-                 '2',
+                 f'{witness_count}',
                  '--protocol-params-file',
                  protocol_json_path]
 
@@ -196,7 +198,7 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     if proc.stderr != '':
         logger.error(f'Error encountered when calculating transcation fee...\n{proc.stdout}')
         logger.debug(f'{proc.stderr}')
-        return ""
+        return ''
 
     return int(proc.stdout.split()[0])
 
