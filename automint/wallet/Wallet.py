@@ -8,14 +8,13 @@ from automint.config import CARDANO_CLI
 logger = logging.getLogger(__name__)
 
 
-# This class will represent one wallet and support querying of wallet
-# details such as utxo-s, signing and verification keys, etc
 class Wallet(object):
+    '''
+    This class will represent one wallet and support querying of wallet
+    details such as utxos, locating of signing and verification keys, etc
+    '''
     def __init__(self, wallet_dir, wallet_name):
         self.name = wallet_name
-
-        # Create wallet directory
-        os.makedirs(wallet_dir, exist_ok=True)
 
         # Define file path for required files this wallet
         self.s_key_fp = os.path.join(wallet_dir, f'{wallet_name}.skey')
@@ -28,7 +27,12 @@ class Wallet(object):
         # Keep dictionary of UTXOs
         self.UTXOs = {}
 
-    def set_up(self):
+    def set_up(self, wallet_dir):
+        if not os.path.exists(wallet_dir):
+            # Create wallet directory if does not exist
+            logger.info(f'{wallet_dir} does not exist, creating directory...')
+            os.makedirs(wallet_dir, exist_ok=True)
+
         if not os.path.exists(self.s_key_fp) and not os.path.exists(self.v_key_fp):
             logger.info(f'Signing and verification keys for wallet {self.name} not found, generating...')
             proc = subprocess.run([CARDANO_CLI,
@@ -66,7 +70,7 @@ class Wallet(object):
         assert self.addr != ""
 
     def query_utxo(self):
-        # Query the blockchain for all UTXOs in this wallet
+        '''Query the blockchain for all UTXOs at the wallet address'''
         self.UTXOs = {}
 
         proc = subprocess.run([CARDANO_CLI,
@@ -88,27 +92,40 @@ class Wallet(object):
         return self.get_utxos()
 
     def get_utxo(self, identifier=None):
+        '''Returns UTXO specified by identifier if provided, otherwise, returns arbitrary UTXO'''
         if identifier is None:
             if len(self.UTXOs) == 0:
-                return
-            k = list(filter(lambda u: self.UTXOs.get(u).get_account().get_lovelace() > 5000000, self.UTXOs.keys()))
-            k = sorted(k, key=lambda u: self.UTXOs.get(u).size())
-            if len(k) == 0:
-                raise Exception('No UTXO could be selected automatically, please specify via flag')
-            return self.UTXOs.get(k[0])
+                return None
+
+            # Automatically select UTXOs with more than 2000000 lovelace and smallest size
+            valid_utxos = list(filter(lambda u: self.UTXOs.get(u).get_account().get_lovelace() >= 2000000, self.UTXOs.keys()))
+            valid_utxos = sorted(valid_utxos, key=lambda u: self.UTXOs.get(u).size())
+
+            if len(valid_utxos) == 0:
+                # No UTXO remaining after filtering
+                raise Exception('No UTXO could be selected automatically, please specify via identfier named argument')
+
+            return self.UTXOs.get(valid_utxos[0])
 
         # Returns the UTXO given the identifier if found, None otherwise
         return self.UTXOs.get(identifier, None)
 
     def get_utxos(self):
-        # Return dictionary of all UTXOs in the wallet
+        '''Return all UTXOs within Wallet as a dictionary indexed by txHash'''
         return self.UTXOs
 
     def get_skey_path(self):
+        '''Return filepath to signing key'''
         return self.s_key_fp
 
     def get_vkey_path(self):
+        '''Return filepath to verification key'''
         return self.v_key_fp
 
     def get_address(self):
+        '''Return address of wallet'''
         return self.addr
+
+    def __str__(self):
+        '''Return string representation of wallet which is its address'''
+        return self.get_address()

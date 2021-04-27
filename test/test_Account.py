@@ -39,3 +39,9 @@ class AccountTests(unittest.TestCase):
         account = account.add_native_token('12345.tokenA', 2)
         account = account.add_native_token('56789.tokenA', 2)
         self.assertEqual(str(account), '1500000+"2 12345.tokenA + 2 56789.tokenA"')
+
+        # Negative quantities for burning
+        account = Account().add_lovelace(1500000)
+        account = account.add_native_token('12345.tokenA', 2)
+        account = account.remove_native_token('56789.tokenA', 2)
+        self.assertEqual(str(account), '1500000+"2 12345.tokenA + -2 56789.tokenA"')
