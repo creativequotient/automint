@@ -14,5 +14,5 @@ setuptools.setup(
     install_requires = [
         'requests'
     ],
-    license_files=('LICENSE',)
+    license_files=('LICENSE',),
 )

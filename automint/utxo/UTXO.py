@@ -50,6 +50,7 @@ class UTXO(object):
         return f'{self.get_utxo_identifier()}'
 
     def convert_to_receiver(self, addr):
+        '''Converts UTXO to TxReceiver object, copying all contents over'''
         new_receiver = TxReceiver(addr)
         new_receiver.account = self.account.duplicate()
         return new_receiver

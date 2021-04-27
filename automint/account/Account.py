@@ -141,3 +141,24 @@ class Account(object):
         for token_id in other_account.native_tokens.keys():
             new_account = new_account.add_native_token(token_id, other_account.get_native_token(token_id)['quantity'])
         return new_account
+
+    def __eq__(self, other_account):
+        # Check type
+        if type(other_account) != Account:
+            return False
+
+        # Check lovelace ammounts
+        if self.get_lovelace() != other_account.get_lovelace():
+            return False
+
+        # Check native token quantities
+        for token_id in self.native_tokens.keys():
+            if token_id not in other_account.native_tokens:
+                return False
+            for attr in self.native_tokens[token_id].keys():
+                if attr not in other_account.native_tokens[token_id][attr]:
+                    return False
+                if self.native_tokens[token_id][attr] != other_account.native_tokens[token_id][attr]:
+                    return False
+
+        return True

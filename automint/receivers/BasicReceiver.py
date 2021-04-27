@@ -38,8 +38,11 @@ class BasicReceiver(object):
     def duplicate(self):
         return copy.deepcopy(self)
 
-    def transfer_all(self, other_receiver):
+    def transfer_to(self, other_receiver):
+        '''Transfer the convents of this receiver to another receiver,
+        emptying this one'''
         other_receiver.account = self.account + other_receiver.account
+        self.account = Account()
 
     def get_lovelace(self):
         return self.account.get_lovelace()
