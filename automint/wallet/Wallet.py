@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 class Wallet(object):
     def __init__(self, wallet_dir, wallet_name, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
-    '''
-    This class will represent one wallet and support querying of wallet
-    details such as utxos, locating of signing and verification keys, etc
-    '''
+        '''
+        This class will represent one wallet and support querying of wallet
+        details such as utxos, locating of signing and verification keys, etc
+        '''
         self.name = wallet_name
         self.use_testnet = use_testnet
         self.testnet_magic = testnet_magic
