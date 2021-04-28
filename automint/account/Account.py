@@ -87,7 +87,6 @@ class Account(object):
 
         return new_account
 
-
     def set_ada(self, quantity):
         assert quantity >= 0
 
@@ -127,6 +126,9 @@ class Account(object):
 
     def get_native_token(self, token_id):
         return self.native_tokens.get(token_id, 0)
+
+    def get_native_tokens(self):
+        return self.native_tokens
 
     def duplicate(self):
         new_account = copy.deepcopy(self)

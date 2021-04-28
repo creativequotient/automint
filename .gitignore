@@ -139,3 +139,9 @@ cython_debug/
 
 # Project data files
 data/
+
+# Keys
+*.addr
+*.skey
+*.vkey
+*.json
