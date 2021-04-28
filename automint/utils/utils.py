@@ -250,8 +250,8 @@ def submit_transaction(signed_matx_path, use_testnet=False, testnet_magic=TESTNE
                    signed_matx_path]
 
     if use_testnet:
-            cmd_builder.append('--testnet-magic')
-            cmd_builder.append(str(testnet_magic))
+        cmd_builder.append('--testnet-magic')
+        cmd_builder.append(str(testnet_magic))
     else:
         cmd_builder.append('--mainnet')
 
