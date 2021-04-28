@@ -24,7 +24,7 @@ class Wallet(object):
         self.addr_fp = os.path.join(wallet_dir, f'{wallet_name}.addr')
 
         # Generate keys as required
-        self.set_up()
+        self.set_up(wallet_dir)
 
         # Keep dictionary of UTXOs
         self.UTXOs = {}

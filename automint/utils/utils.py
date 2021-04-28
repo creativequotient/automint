@@ -163,13 +163,13 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
 def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_accounts, witness_count=2, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Calculate transaction fees"""
 
-    assert witness_count >= len(input_utxos)
-
     if type(input_utxos) != list:
         input_utxos = [input_utxos]
 
     if type(output_accounts) != list:
         output_accounts = [output_accounts]
+
+    assert witness_count >= len(input_utxos)
 
     cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
                  'transaction',
