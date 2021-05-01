@@ -88,4 +88,3 @@ under the policy ID in step 1.
 Comments have been added liberally within `mint.py` to describe each
 function call and block of code. More in-depth explainations will be
 written here soon.
->>>>>>> main
