@@ -4,41 +4,48 @@ from automint.receivers import MintingReceiver
 from automint.wallet import Wallet
 from automint.utxo import UTXO
 from automint.utils import get_protocol_params, get_policy_id, get_key_hash, write_policy_script, get_policy_id, build_raw_transaction, calculate_tx_fee, submit_transaction, sign_tx
+from automint.utils import query_tip
 import logging
 import os
 import json
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 if __name__ == '__main__':
-    # Initial set-up
-    NFT_DIR = os.path.realpath('data/temp_nft')
+    # Set up directories
+    WORK_DIR = os.path.realpath('.')
+    TMP_DIR = os.path.join(WORK_DIR, 'tmp')
+    KEYS_DIR = os.path.join(WORK_DIR, 'keys')
 
-    TEMP_DIR = os.path.join(NFT_DIR, 'tmp')
-    os.makedirs(TEMP_DIR, exist_ok=True)
-
-    METADATA_FP = os.path.join(NFT_DIR, 'sample_metadata.json')
+    assert os.path.exists(TMP_DIR)
+    assert os.path.exists(KEYS_DIR)
 
     # Define tokens to be minted
-    TOKENS = [f'sampleToken{i:02}' for i in range(5)]
+    TOKENS = [f'TestToken{i:02}' for i in range(5)]
 
     # Define wallets
-    payment_wallet = Wallet(NFT_DIR, 'payment') # This wallet is for transactions
-    policy_wallet = Wallet(NFT_DIR, 'policy') # This wallet is ONLY for signing off on the policy to mint tokens
-    logging.info(f'Payment wallet address: {payment_wallet.get_address()}')
-    logging.info(f'Policy wallet address: {policy_wallet.get_address()}')
+    payment_wallet = Wallet(KEYS_DIR, 'payment') # This wallet is for transactions
+    policy_wallet = Wallet(KEYS_DIR, 'policy') # This wallet is ONLY for signing off on the policy to mint tokens
+    logger.info(f'Payment wallet address: {payment_wallet.get_address()}')
+    logger.info(f'Policy wallet address: {policy_wallet.get_address()}')
 
     # Query UTXOs at wallet address, this step must be done so that
     # internally, the wallet will become aware of its own UTXOs
     payment_wallet.query_utxo()
+
+    if len(payment_wallet.get_utxos()) <= 0:
+        logger.info(f'No UTXOs found within wallet.')
+        logger.info(f'Please send some ADA (~5ADA) to the payment wallet address {payment_wallet.get_address()}')
+        exit()
 
     # Display UTXOs for visual inspection (optional)
     utxo_summary = ''
     for id in payment_wallet.get_utxos():
         utxo = payment_wallet.get_utxo(identifier=id)
         utxo_summary += f'\nUTXO: {utxo}\nADA:: {utxo.get_account().get_ada()}\nContents: {json.dumps(utxo.get_account().native_tokens, indent=4)}'
-    logging.info(f'UTXOs found at wallet address...{utxo_summary}')
+    logger.info(f'UTXOs found at wallet address...{utxo_summary}')
 
     # Get UTXO to consume in transaction `payment_wallet.get_utxo()`
     # has some logic to select suitable UTXO to consume based on
@@ -47,26 +54,19 @@ if __name__ == '__main__':
     # can be manually specified by pass the `<txHash>#<index>` to the
     # `get_utxo()` function.
     input_utxo = payment_wallet.get_utxo()
-    logging.info(f'UTXO to be consumed: {input_utxo}')
+    logger.info(f'UTXO to be consumed: {input_utxo}')
 
     # Query blockchain parameters
-    protocol_param_fp = get_protocol_params(TEMP_DIR)
-    logging.info(f'Protocol parameters written to {protocol_param_fp}')
+    protocol_param_fp = get_protocol_params(TMP_DIR)
+    logger.info(f'Protocol parameters written to {protocol_param_fp}')
 
-    # Compute keyHash (may be redundant if policy.script already
-    # exists since a new policy.script will not be regenerated and
-    # hence, no need to compute this)
-    key_hash = get_key_hash(policy_wallet.get_vkey_path())
-    logging.info(f'keyHash generated...')
+    # Acquire policy script and ID
+    policy_script_fp = os.path.join(WORK_DIR, 'policy.script')
 
-    # Generate policy script if it does not already exist at
-    # `NFT_DIR/policy.script`
-    policy_script_fp = write_policy_script(NFT_DIR, key_hash, force=False)
-    logging.info(f'Policy script found at {policy_script_fp}...')
+    with open(os.path.join(WORK_DIR, 'policy.id'), 'r') as f:
+        policy_id = f.read().strip()
 
-    # Generate policy_id
-    policy_id = get_policy_id(policy_script_fp)
-    logging.info(f'Policy id: {policy_id}')
+    logger.info(f'Policy ID: {policy_id}')
 
     # Create receiver and mintingAccount. Receiver and MintingAccount
     # can conduct arithmetic on the adding / removal of tokens and is
@@ -85,13 +85,9 @@ if __name__ == '__main__':
     minting_receiver = MintingReceiver()
     for token in TOKENS:
         token_id = f'{policy_id}.{token}'
-        # Add/remove tokens from the receiver and minting_account
-        # (since tokens will be minted/burned)
 
         tx_receiver.add_native_token(token_id, 1)
         minting_receiver.add_native_token(token_id, 1)
-        # tx_receiver.remove_native_token(token_id, 1)
-        # minting_receiver.remove_native_token(token_id, 1)
 
     # Draft transaction with 0 fees. `receiver.get_blank_receiver()`
     # simply returns a clone of the same receiver but with 0 lovelace
@@ -100,42 +96,46 @@ if __name__ == '__main__':
     # Note: Specifing the metadata parameter attaches the metadata at
     # the specified location to the transcation. If no metadata is to
     # be added, simply omit the argument.
-    raw_matx_path = build_raw_transaction(TEMP_DIR,
+
+    invalid_after_slot = query_tip()['slot'] + 3600
+
+    raw_matx_path = build_raw_transaction(TMP_DIR,
                                           input_utxo,
                                           tx_receiver.get_blank_receiver(),
                                           policy_id,
                                           minting_receiver,
-                                          metadata=METADATA_FP)
-    logging.info(f'Draft transaction written to {raw_matx_path}...')
+                                          invalid_after=invalid_after_slot,
+                                          script_path=policy_script_fp)
+    logger.info(f'Draft transaction written to {raw_matx_path}...')
 
     # Caculate fees
     fee = calculate_tx_fee(raw_matx_path, protocol_param_fp, input_utxo, tx_receiver)
-    logging.info(f'Calculated transaction fee: {fee} lovelace')
+    fee = int(fee * 1.25)
+    logger.info(f'Calculated transaction fee: {fee} lovelace')
 
     # Adjust fees in lovelace in receiver
     tx_receiver.remove_lovelace(fee)
 
     # Draft transaction but with fees accounted for
-    raw_matx_path = build_raw_transaction(TEMP_DIR,
+    raw_matx_path = build_raw_transaction(TMP_DIR,
                                           input_utxo,
                                           tx_receiver,
                                           policy_id,
                                           minting_receiver,
                                           fee=fee,
-                                          metadata=METADATA_FP)
-    logging.info(f'Draft transaction with fees written to {raw_matx_path}...')
+                                          invalid_after=invalid_after_slot,
+                                          script_path=policy_script_fp)
+    logger.info(f'Draft transaction with fees written to {raw_matx_path}...')
 
     # Sign transaction
-    signed_matx_path = sign_tx(TEMP_DIR,
-                               payment_wallet.get_skey_path(),
-                               policy_wallet.get_skey_path(),
-                               raw_matx_path,
-                               script_path=policy_script_fp)
-    logging.info(f'Signed transaction written to {signed_matx_path}')
+    signed_matx_path = sign_tx(TMP_DIR,
+                               [payment_wallet, policy_wallet],
+                               raw_matx_path,)
+    logger.info(f'Signed transaction written to {signed_matx_path}')
 
     # Submit transaction to the blockchain
     result = submit_transaction(signed_matx_path)
     if result:
-        logging.info(f'Successfully submitted transaction!')
+        logger.info(f'Successfully submitted transaction!')
     else:
-        logging.info(f'Failed to submit transaction')
+        logger.info(f'Failed to submit transaction')
