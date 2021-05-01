@@ -139,7 +139,6 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
         cmd_builder.append(metadata)
 
     if invalid_after:
-
         assert type(invalid_after) == int
         cmd_builder.append('--invalid-hereafter')
         cmd_builder.append(str(invalid_after))
@@ -281,6 +280,8 @@ def get_return_address_from_utxo(utxo):
         return address
     except requests.exceptions.RequestException as e:
         return ''
+    except IndexError as e:
+        return ''
 
 
 def get_stake_key(address):
@@ -291,7 +292,9 @@ def get_stake_key(address):
 
     except requests.exceptions.RequestException as e:
         logger.error(f'Unable to acquire stake key for {address}')
-        return ""
+        return ''
+    except IndexError as e:
+        return ''
 
 
 def get_cli_version():
