@@ -1,0 +1,14 @@
+{
+    "721": {
+        "123": {
+            "tokenA": {
+                "name": "Token A",
+                "image": "ipfs://..."
+            },
+            "tokenB": {
+                "name": "Token B",
+                "image": "ipfs://..."
+            }
+        }
+    }
+}
