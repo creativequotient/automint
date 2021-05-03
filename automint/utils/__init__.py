@@ -12,3 +12,5 @@ from .utils import get_key_hash
 from .utils import get_stake_key
 from .utils import get_cli_version
 from .utils import query_tip
+
+from .metadata import validate_metadata
