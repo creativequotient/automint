@@ -23,7 +23,7 @@ def validate_metadata(metadata_fp, tokens, policy_id):
 
 
     if policy_id not in metadata['721']:
-        found_policy_id = metadata['721'].keys()[0]
+        found_policy_id = list(metadata['721'].keys())[0]
         raise Exception(f'Metadata contains policy ID {found_policy_id} which does not match {policy_id}')
 
     # Check tokens
