@@ -5,7 +5,6 @@ import json
 import requests
 from automint.config import CARDANO_CLI, TESTNET_MAGIC_DEFAULT
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +30,7 @@ def get_protocol_params(working_dir, use_testnet=False, testnet_magic=TESTNET_MA
     proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
     if proc.stderr != '':
-        logger.error(f'Failed to fetch protocol parameters...')
+        logger.error('Failed to fetch protocol parameters...')
         return ''
 
     return protocol_json_path
@@ -50,7 +49,7 @@ def get_key_hash(policy_vkey_path):
                            policy_vkey_path], capture_output=True, text=True)
 
     if proc.stderr != "":
-        logger.error(f'Failed to compute keyHash')
+        logger.error('Failed to compute keyHash')
 
     return proc.stdout.strip('\n')
 
@@ -80,10 +79,10 @@ def write_policy_script_with_time_lock(working_dir, keyHash, before, force=False
         with open(script_path, 'w') as script_f:
             json.dump({
                 'type': 'all',
-                'scripts':[{
+                'scripts': [{
                     'keyHash': keyHash,
                     'type': 'sig'
-                },{
+                }, {
                     'slot': before,
                     'type': 'before'
                 }]
@@ -103,7 +102,7 @@ def get_policy_id(policy_script_path):
     return proc.stdout.strip('\n')
 
 
-def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None, invalid_after=None, script_path=None):
+def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=None,  minting_account=None, fee=0, metadata=None, invalid_after=None):
     """Builds transactions"""
 
     if type(input_utxos) != list:
@@ -115,13 +114,16 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
     raw_matx_path = os.path.join(working_dir, 'matx.raw')
 
     # Only generate/overwrite the keys if they do not exist or force=True
-    cmd_builder  = [CARDANO_CLI.replace(' ', '\ '),
-                    'transaction',
-                    'build-raw',
-                    '--fee',
-                    f'{fee}',
-                    '--out-file',
-                    raw_matx_path]
+    cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                   'transaction',
+                   'build-raw',
+                   '--fee',
+                   f'{fee}',
+                   '--out-file',
+                   raw_matx_path]
+
+    if fee == 0:
+        output_accounts = list(map(lambda rec: rec.get_blank_receiver(), output_accounts))
 
     for utxo in input_utxos:
         cmd_builder.append('--tx-in')
@@ -142,10 +144,6 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, policy_id=N
         assert type(invalid_after) == int
         cmd_builder.append('--invalid-hereafter')
         cmd_builder.append(str(invalid_after))
-
-    if minting_account:
-        cmd_builder.append('--minting-script-file')
-        cmd_builder.append(script_path)
 
     cmd = " ".join(cmd_builder)
 
@@ -171,18 +169,18 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     assert witness_count >= len(input_utxos)
 
     cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
-                 'transaction',
-                 'calculate-min-fee',
-                 '--tx-body-file',
-                 raw_matx_path,
-                 '--tx-in-count',
-                 f'{len(input_utxos)}',
-                 '--tx-out-count',
-                 f'{len(output_accounts)}',
-                 '--witness-count',
-                 f'{witness_count}',
-                 '--protocol-params-file',
-                 protocol_json_path]
+                   'transaction',
+                   'calculate-min-fee',
+                   '--tx-body-file',
+                   raw_matx_path,
+                   '--tx-in-count',
+                   f'{len(input_utxos)}',
+                   '--tx-out-count',
+                   f'{len(output_accounts)}',
+                   '--witness-count',
+                   f'{witness_count}',
+                   '--protocol-params-file',
+                   protocol_json_path]
 
     if use_testnet:
         cmd_builder.append('--testnet-magic')
@@ -191,6 +189,8 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
         cmd_builder.append('--mainnet')
 
     cmd = ' '.join(cmd_builder)
+
+    logger.debug(cmd)
 
     proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
@@ -202,7 +202,7 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     return int(proc.stdout.split()[0])
 
 
-def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
+def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, use_testnet=False, script=None, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Generate and write signed transaction file"""
     if type(signing_wallets) != list:
         signing_wallets = [signing_wallets]
@@ -221,6 +221,10 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, use_testnet=Fa
     for wallet in signing_wallets:
         cmd_builder.append('--signing-key-file')
         cmd_builder.append(wallet.get_skey_path())
+
+    if script:
+        cmd_builder.append('--script-file')
+        cmd_builder.append(script)
 
     if use_testnet:
         cmd_builder.append('--testnet-magic')
@@ -290,10 +294,10 @@ def get_stake_key(address):
 
         return req.content.decode("utf-8").split('<strong>')[2].split('</strong')[0]
 
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         logger.error(f'Unable to acquire stake key for {address}')
         return ''
-    except IndexError as e:
+    except IndexError:
         return ''
 
 
