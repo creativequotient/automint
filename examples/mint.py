@@ -9,7 +9,7 @@ import logging
 import os
 import json
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -26,8 +26,10 @@ if __name__ == '__main__':
     TOKENS = [f'TestToken{i:02}' for i in range(5)]
 
     # Define wallets
-    payment_wallet = Wallet(KEYS_DIR, 'payment') # This wallet is for transactions
-    policy_wallet = Wallet(KEYS_DIR, 'policy') # This wallet is ONLY for signing off on the policy to mint tokens
+    # This wallet is for transactions
+    payment_wallet = Wallet(KEYS_DIR, 'payment', use_testnet=True)
+    # This wallet is ONLY for signing off on the policy to mint tokens
+    policy_wallet = Wallet(KEYS_DIR, 'policy', use_testnet=True)
     logger.info(f'Payment wallet address: {payment_wallet.get_address()}')
     logger.info(f'Policy wallet address: {policy_wallet.get_address()}')
 
@@ -36,7 +38,7 @@ if __name__ == '__main__':
     payment_wallet.query_utxo()
 
     if len(payment_wallet.get_utxos()) <= 0:
-        logger.info(f'No UTXOs found within wallet.')
+        logger.info('No UTXOs found within wallet.')
         logger.info(f'Please send some ADA (~5ADA) to the payment wallet address {payment_wallet.get_address()}')
         exit()
 
@@ -57,7 +59,7 @@ if __name__ == '__main__':
     logger.info(f'UTXO to be consumed: {input_utxo}')
 
     # Query blockchain parameters
-    protocol_param_fp = get_protocol_params(TMP_DIR)
+    protocol_param_fp = get_protocol_params(TMP_DIR, use_testnet=True)
     logger.info(f'Protocol parameters written to {protocol_param_fp}')
 
     # Acquire policy script and ID
@@ -82,12 +84,18 @@ if __name__ == '__main__':
     # address. In this sample, we are just sending it back to the
     # minting wallet
     tx_receiver = input_utxo.convert_to_receiver(payment_wallet.get_address())
+    cust_receiver = TxReceiver(payment_wallet.get_address())
     minting_receiver = MintingReceiver()
     for token in TOKENS:
         token_id = f'{policy_id}.{token}'
 
-        tx_receiver.add_native_token(token_id, 1)
-        minting_receiver.add_native_token(token_id, 1)
+        cust_receiver.remove_native_token(token_id, 1)
+        minting_receiver.remove_native_token(token_id, 1)
+
+    tx_receiver.remove_lovelace(1650000 * 5)
+    cust_receiver.add_lovelace(1650000 * 5)
+
+    receivers = [tx_receiver, cust_receiver]
 
     # Draft transaction with 0 fees. `receiver.get_blank_receiver()`
     # simply returns a clone of the same receiver but with 0 lovelace
@@ -97,20 +105,19 @@ if __name__ == '__main__':
     # the specified location to the transcation. If no metadata is to
     # be added, simply omit the argument.
 
-    invalid_after_slot = query_tip()['slot'] + 3600
+    invalid_after_slot = query_tip(use_testnet=True)['slot'] + 3600
 
     raw_matx_path = build_raw_transaction(TMP_DIR,
                                           input_utxo,
-                                          tx_receiver.get_blank_receiver(),
+                                          receivers,
                                           policy_id,
                                           minting_receiver,
-                                          invalid_after=invalid_after_slot,
-                                          script_path=policy_script_fp)
+                                          invalid_after=invalid_after_slot)
     logger.info(f'Draft transaction written to {raw_matx_path}...')
 
     # Caculate fees
-    fee = calculate_tx_fee(raw_matx_path, protocol_param_fp, input_utxo, tx_receiver)
-    fee = int(fee * 1.25)
+    fee = calculate_tx_fee(raw_matx_path, protocol_param_fp, input_utxo, receivers, use_testnet=True)
+    fee = int(fee * 2)
     logger.info(f'Calculated transaction fee: {fee} lovelace')
 
     # Adjust fees in lovelace in receiver
@@ -119,22 +126,23 @@ if __name__ == '__main__':
     # Draft transaction but with fees accounted for
     raw_matx_path = build_raw_transaction(TMP_DIR,
                                           input_utxo,
-                                          tx_receiver,
+                                          receivers,
                                           policy_id,
                                           minting_receiver,
                                           fee=fee,
-                                          invalid_after=invalid_after_slot,
-                                          script_path=policy_script_fp)
+                                          invalid_after=invalid_after_slot)
     logger.info(f'Draft transaction with fees written to {raw_matx_path}...')
 
     # Sign transaction
     signed_matx_path = sign_tx(TMP_DIR,
                                [payment_wallet, policy_wallet],
-                               raw_matx_path,)
+                               raw_matx_path,
+                               script=policy_script_fp,
+                               use_testnet=True)
     logger.info(f'Signed transaction written to {signed_matx_path}')
 
     # Submit transaction to the blockchain
-    result = submit_transaction(signed_matx_path)
+    result = submit_transaction(signed_matx_path, use_testnet=True)
     if result:
         logger.info(f'Successfully submitted transaction!')
     else:
