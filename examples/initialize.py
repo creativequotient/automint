@@ -17,14 +17,17 @@ if __name__ == '__main__':
     os.makedirs(KEYS_DIR, exist_ok=True)
 
     # Set up wallets
-    payment_wallet = Wallet(KEYS_DIR, 'payment')
-    policy_wallet = Wallet(KEYS_DIR, 'policy')
+    payment_wallet = Wallet(KEYS_DIR, 'payment', use_testnet=True)
+    policy_wallet = Wallet(KEYS_DIR, 'policy', use_testnet=True)
 
     # Set up policies
     key_hash = get_key_hash(policy_wallet.get_vkey_path())
-    current_slot = query_tip()['slot']
-    before_slot = current_slot + 60 * 60 * 24 * 7 # This adds 7 days worth of slots from the current slot
-    policy_script_fp = write_policy_script_with_time_lock(WORK_DIR, key_hash, before=before_slot)
+    current_slot = query_tip(use_testnet=True)['slot']
+    # This adds 7 days worth of slots from the current slot
+    before_slot = current_slot + 60 * 60 * 24 * 7
+    policy_script_fp = write_policy_script_with_time_lock(WORK_DIR,
+                                                          key_hash,
+                                                          before=before_slot)
     policy_id = get_policy_id(policy_script_fp)
 
     # Write policy id to file
