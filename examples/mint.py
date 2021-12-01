@@ -23,13 +23,13 @@ if __name__ == '__main__':
     assert os.path.exists(KEYS_DIR)
 
     # Define tokens to be minted
-    TOKENS = [f'TestToken{i:02}' for i in range(5)]
+    TOKENS = [f'TestToken{i:02}' for i in range(2)]
 
     # Define wallets
     # This wallet is for transactions
-    payment_wallet = Wallet(KEYS_DIR, 'payment', use_testnet=True)
+    payment_wallet = Wallet(KEYS_DIR, 'payment', use_testnet=False)
     # This wallet is ONLY for signing off on the policy to mint tokens
-    policy_wallet = Wallet(KEYS_DIR, 'policy', use_testnet=True)
+    policy_wallet = Wallet(KEYS_DIR, 'policy', use_testnet=False)
     logger.info(f'Payment wallet address: {payment_wallet.get_address()}')
     logger.info(f'Policy wallet address: {policy_wallet.get_address()}')
 
@@ -55,11 +55,11 @@ if __name__ == '__main__':
     # that this arbitrary logic fails to find an appropriate UTXO, one
     # can be manually specified by pass the `<txHash>#<index>` to the
     # `get_utxo()` function.
-    input_utxo = payment_wallet.get_utxo()
+    input_utxo = payment_wallet.get_utxo('013f097180a76fcec4d8e661ec10d2a6be5c6d8b1f866af70caeaaf5d310041e#1')
     logger.info(f'UTXO to be consumed: {input_utxo}')
 
     # Query blockchain parameters
-    protocol_param_fp = get_protocol_params(TMP_DIR, use_testnet=True)
+    protocol_param_fp = get_protocol_params(TMP_DIR, use_testnet=False)
     logger.info(f'Protocol parameters written to {protocol_param_fp}')
 
     # Acquire policy script and ID
@@ -84,18 +84,14 @@ if __name__ == '__main__':
     # address. In this sample, we are just sending it back to the
     # minting wallet
     tx_receiver = input_utxo.convert_to_receiver(payment_wallet.get_address())
-    cust_receiver = TxReceiver(payment_wallet.get_address())
     minting_receiver = MintingReceiver()
     for token in TOKENS:
         token_id = f'{policy_id}.{token}'
 
-        cust_receiver.remove_native_token(token_id, 1)
+        tx_receiver.remove_native_token(token_id, 1)
         minting_receiver.remove_native_token(token_id, 1)
 
-    tx_receiver.remove_lovelace(1650000 * 5)
-    cust_receiver.add_lovelace(1650000 * 5)
-
-    receivers = [tx_receiver, cust_receiver]
+    receivers = [tx_receiver]
 
     # Draft transaction with 0 fees. `receiver.get_blank_receiver()`
     # simply returns a clone of the same receiver but with 0 lovelace
@@ -105,14 +101,14 @@ if __name__ == '__main__':
     # the specified location to the transcation. If no metadata is to
     # be added, simply omit the argument.
 
-    invalid_after_slot = query_tip(use_testnet=True)['slot'] + 3600
+    invalid_after_slot = query_tip(use_testnet=False)['slot'] + 3600
 
     raw_matx_path = build_raw_transaction(TMP_DIR,
                                           input_utxo,
                                           receivers,
-                                          policy_id,
                                           minting_receiver,
-                                          invalid_after=invalid_after_slot)
+                                          invalid_after=invalid_after_slot,
+                                          minting_script=policy_script_fp)
     logger.info(f'Draft transaction written to {raw_matx_path}...')
 
     # Caculate fees
@@ -127,22 +123,21 @@ if __name__ == '__main__':
     raw_matx_path = build_raw_transaction(TMP_DIR,
                                           input_utxo,
                                           receivers,
-                                          policy_id,
                                           minting_receiver,
                                           fee=fee,
-                                          invalid_after=invalid_after_slot)
+                                          invalid_after=invalid_after_slot,
+                                          minting_script=policy_script_fp)
     logger.info(f'Draft transaction with fees written to {raw_matx_path}...')
 
     # Sign transaction
     signed_matx_path = sign_tx(TMP_DIR,
                                [payment_wallet, policy_wallet],
                                raw_matx_path,
-                               script=policy_script_fp,
-                               use_testnet=True)
+                               use_testnet=False)
     logger.info(f'Signed transaction written to {signed_matx_path}')
 
     # Submit transaction to the blockchain
-    result = submit_transaction(signed_matx_path, use_testnet=True)
+    result = submit_transaction(signed_matx_path, use_testnet=False)
     if result:
         logger.info(f'Successfully submitted transaction!')
     else:

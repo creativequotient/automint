@@ -36,6 +36,8 @@ class UTXO(object):
         if len(tokens_str) >= 2:
             native_assets_str = tokens_str[1:]
             for native_asset_str in native_assets_str:
+                if native_asset_str.strip() == 'TxOutDatumHashNone':
+                    continue
                 qty, asset = native_asset_str.strip().split()
                 qty = int(qty)
                 self.account = self.account.add_native_token(asset, qty)
