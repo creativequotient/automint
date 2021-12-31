@@ -5,6 +5,7 @@ from automint.wallet import Wallet
 from automint.utxo import UTXO
 from automint.utils import get_protocol_params, get_policy_id, get_key_hash, write_policy_script, get_policy_id, build_raw_transaction, calculate_tx_fee, submit_transaction, sign_tx
 from automint.utils import query_tip
+from automint.utils import convert_to_hex
 import logging
 import os
 import json
