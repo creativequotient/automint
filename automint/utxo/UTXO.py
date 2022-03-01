@@ -44,7 +44,7 @@ class UTXO(object):
                 qty = int(qty)
 
                 policy_id, ticker_hex = asset_hex.split('.')
-                ticker = convert_from_hex(ticker)
+                ticker = convert_from_hex(ticker_hex)
 
                 asset = f'{policy_id}.{ticker}'
                 self.account = self.account.add_native_token(asset, qty)
