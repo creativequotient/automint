@@ -1,6 +1,7 @@
 import copy
 
 from automint.utils import convert_from_hex
+from automint.utils.utils import convert_to_hex
 
 
 class Account(object):
@@ -20,7 +21,7 @@ class Account(object):
         if token_id not in new_account.native_tokens:
             policy_id, token = token_id.split('.')
             new_account.native_tokens[token_id] = {
-                'name': convert_from_hex(token),
+                'name': token,
                 'policy_id': policy_id,
                 'quantity': 0
             }
@@ -109,7 +110,11 @@ class Account(object):
     def __str__(self):
         assets = []
         for token_id in sorted(self.native_tokens.keys()):
-            assets.append(f'{self.native_tokens[token_id]["quantity"]} {token_id}')
+            policy_id, ticker = token_id.split('.')
+            ticker_hex = convert_to_hex(ticker)
+
+            token_hex = f'{policy_id}.{ticker_hex}'
+            assets.append(f'{self.native_tokens[token_id]["quantity"]} {token_hex}')
 
         output = f'{self.lovelace}'
         if len(assets) != 0:

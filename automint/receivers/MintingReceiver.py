@@ -1,6 +1,8 @@
 from automint.account import Account
 from automint.receivers import BasicReceiver
 
+from automint.utils import convert_to_hex
+
 
 # The MintingReceiver class is used to generate the string formatted
 # output for the `--mint` field. It should be used to keep track of
@@ -25,5 +27,9 @@ class MintingReceiver(BasicReceiver):
         assets = []
         account = self.get_account()
         for token_id in sorted(account.native_tokens.keys()):
-            assets.append(f'{account.native_tokens[token_id]["quantity"]} {token_id}')
+            policy_id, ticker = token_id.split('.')
+            ticker_hex = convert_to_hex(ticker)
+
+            token_hex = f'{policy_id}.{ticker_hex}'
+            assets.append(f'{account.native_tokens[token_id]["quantity"]} {token_hex}')
         return f'"{" + ".join(assets)}"'
