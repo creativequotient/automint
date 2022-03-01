@@ -5,6 +5,7 @@ from automint.wallet import Wallet
 from automint.utxo import UTXO
 from automint.utils import get_protocol_params, get_policy_id, get_key_hash, write_policy_script, get_policy_id, build_raw_transaction, calculate_tx_fee, submit_transaction, sign_tx
 from automint.utils import query_tip
+from automint.utils import convert_to_hex
 import logging
 import os
 import json
@@ -86,7 +87,7 @@ if __name__ == '__main__':
     tx_receiver = input_utxo.convert_to_receiver(payment_wallet.get_address())
     minting_receiver = MintingReceiver()
     for token in TOKENS:
-        token_id = f'{policy_id}.{token}'
+        token_id = f'{policy_id}.{convert_to_hex(token)}'
 
         tx_receiver.remove_native_token(token_id, 1)
         minting_receiver.remove_native_token(token_id, 1)

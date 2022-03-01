@@ -3,10 +3,14 @@ import os
 import logging
 import json
 import requests
+import binascii
 from automint.config import CARDANO_CLI, TESTNET_MAGIC_DEFAULT
 
 logger = logging.getLogger(__name__)
 
+def convert_to_hex(ascii_str):
+    hex_str = binascii.hexlify(ascii_str.encode())
+    return hex_str.decode('utf-8')
 
 def get_protocol_params(working_dir, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Query protocol parameters and write to file"""
