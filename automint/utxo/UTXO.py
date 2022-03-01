@@ -1,7 +1,7 @@
 import copy
 from automint.account import Account
 from automint.receivers import TxReceiver
-from automint.utils import decode_asset
+from automint.utils import convert_to_hex
 from automint.utils.utils import convert_from_hex
 
 
