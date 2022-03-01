@@ -14,7 +14,7 @@ def convert_to_hex(ascii_str):
 
 
 def convert_from_hex(hex_str):
-    return bytes.fromhex(hex_str).decode('UTF-8)
+    return bytes.fromhex(hex_str).decode('UTF-8')
 
 def get_protocol_params(working_dir, use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     """Query protocol parameters and write to file"""
