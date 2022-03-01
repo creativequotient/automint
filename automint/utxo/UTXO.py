@@ -42,7 +42,7 @@ class UTXO(object):
                     continue
                 qty, asset = native_asset_str.strip().split()
                 qty = int(qty)
-                self.account = self.account.add_native_token(convert_from_hex(asset), qty)
+                self.account = self.account.add_native_token(asset, qty)
 
     def get_utxo_identifier(self):
         return f'{self.txHash}#{self.index}'

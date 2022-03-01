@@ -1,5 +1,7 @@
 import copy
 
+from automint.utils import convert_from_hex
+
 
 class Account(object):
     '''The Account class is used to keep track of a set of tokens and
@@ -18,7 +20,7 @@ class Account(object):
         if token_id not in new_account.native_tokens:
             policy_id, token = token_id.split('.')
             new_account.native_tokens[token_id] = {
-                'name': token,
+                'name': convert_from_hex(token),
                 'policy_id': policy_id,
                 'quantity': 0
             }
