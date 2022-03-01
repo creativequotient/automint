@@ -150,9 +150,15 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, minting_acc
         cmd_builder.append(str(invalid_after))
 
     if minting_script:
-        assert os.path.join(minting_script)
-        cmd_builder.append('--minting-script-file')
-        cmd_builder.append(minting_script)
+        if type(minting_script) == str:
+            assert os.path.join(minting_script)
+            cmd_builder.append('--minting-script-file')
+            cmd_builder.append(minting_script)
+        else:
+            for script in minting_script:
+                assert os.path.join(script)
+                cmd_builder.append('--minting-script-file')
+                cmd_builder.append(script)
 
     cmd = " ".join(cmd_builder)
 
@@ -238,6 +244,8 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, use_testnet=Fa
         cmd_builder.append('--mainnet')
 
     cmd = ' '.join(cmd_builder)
+
+    logger.debug(cmd)
 
     proc = subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
