@@ -24,6 +24,7 @@ def get_protocol_params(working_dir, use_testnet=False, testnet_magic=TESTNET_MA
     protocol_json_path = os.path.join(working_dir, 'protocol.json')
 
     cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                   'conway',
                    'query',
                    'protocol-parameters',
                    '--out-file',
@@ -105,12 +106,16 @@ def write_policy_script_with_time_lock(working_dir, keyHash, before, force=False
 def get_policy_id(policy_script_path):
     """Return policy id given policy script"""
     proc = subprocess.run([CARDANO_CLI,
+                           'conway',
                            'transaction',
                            'policyid',
                            '--script-file',
                            policy_script_path], capture_output=True, text=True)
-    return proc.stdout.strip('\n')
 
+    if proc.stderr != '':
+        logger.error(f'Error encountered when determining policy ID from script\n{proc.stderr}')
+
+    return proc.stdout.strip('\n')
 
 def build_raw_transaction(working_dir, input_utxos, output_accounts, minting_account=None, fee=0, metadata=None, invalid_after=None, minting_script=None):
     """Builds transactions"""
@@ -125,6 +130,7 @@ def build_raw_transaction(working_dir, input_utxos, output_accounts, minting_acc
 
     # Only generate/overwrite the keys if they do not exist or force=True
     cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                   'conway',
                    'transaction',
                    'build-raw',
                    '--fee',
@@ -190,6 +196,7 @@ def calculate_tx_fee(raw_matx_path, protocol_json_path, input_utxos, output_acco
     assert witness_count >= len(input_utxos)
 
     cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                   'conway',
                    'transaction',
                    'calculate-min-fee',
                    '--tx-body-file',
@@ -232,6 +239,7 @@ def sign_tx(nft_dir, signing_wallets, raw_matx_path, force=False, use_testnet=Fa
 
     # Only generate/overwrite the keys if they do not exist or force=True
     cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                   'conway',
                    'transaction',
                    'sign',
                    '--tx-body-file',
@@ -266,6 +274,7 @@ def submit_transaction(signed_matx_path, use_testnet=False, testnet_magic=TESTNE
     """Submit signed transaction"""
 
     cmd_builder = [CARDANO_CLI.replace(' ', '\ '),
+                   'conway',
                    'transaction',
                    'submit',
                    '--tx-file',
@@ -333,6 +342,7 @@ def get_cli_version():
 
 def query_tip(use_testnet=False, testnet_magic=TESTNET_MAGIC_DEFAULT):
     cmd_builder = [CARDANO_CLI,
+                   'latest',
                    'query',
                    'tip']
 

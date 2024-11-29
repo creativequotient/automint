@@ -87,6 +87,7 @@ class Wallet(object):
         self.UTXOs = {}
 
         cmd_builder = [CARDANO_CLI,
+                       'conway',
                        'query',
                        'utxo',
                        '--address',
